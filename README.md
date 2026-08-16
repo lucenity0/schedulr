@@ -1,101 +1,104 @@
-# Schedulr - The OS Concepts Simulator
+# Schedulr — The OS Concepts Simulator
 
-## Overview
+Interactive, step-by-step simulations of core operating system concepts. Everything runs
+client-side, plays back one decision at a time, and explains each decision as it makes it.
 
-Schedulr is an interactive web application designed to help students understand and visualize core Operating System concepts. It provides hands-on simulations and visualizations for CPU scheduling, system calls, process synchronization, page replacement, and disk scheduling algorithms. All modules run client-side with real-time visual feedback.
+**Live:** https://srikrishna-ps.github.io/schedulr/
 
-## Features
+## Modules
 
-- Minimalistic and modern UI with consistent and accessible design
-- Gantt charts and process metrics for CPU scheduling
-- System call visualizer with process tree simulation
-- Classic synchronization problems (Producer-Consumer, Readers-Writers, Dining Philosophers)
-- Page replacement algorithm simulations (FIFO, LRU, LFU, Optimal)
-- Disk scheduling visualizations (FCFS, SSTF, SCAN, C-SCAN)
+**Processes**
 
-## Current updates
+| Module | Covers |
+| --- | --- |
+| CPU Scheduling | FCFS, SJF, SRTF, LJF, HRRN, Priority (preemptive & not), Round Robin, MLQ, MLFQ |
+| System Calls | `fork()`, `exec()`, `wait()`, `exit()` as an execution-flow graph |
+| Real-Time Scheduling | Rate Monotonic, EDF, utilization bound, deadline misses |
 
-- **Preemptive Scheduling Support**  
-  Adding preemptive algorithms to enhance task prioritization and system responsiveness.
+**Concurrency**
 
-- **Mobile View Friendly**  
-  improved UI for scalability and bug fixes.
+| Module | Covers |
+| --- | --- |
+| Synchronization | Semaphores, Producer-Consumer, Readers-Writers, Dining Philosophers |
+| Deadlock | Banker's algorithm, safe sequences, detection, resource-allocation graph |
 
-- **Buttons!**  
-  Skip to Result and Previous Step buttons added to Page Replacement and Disk Scheduling
+**Memory**
 
-## Future updates
-- **Real-Time Scheduling Algorithms (RTOS)**  
-  Introducing algorithms like Rate Monotonic (RM) and Earliest Deadline First (EDF) for real-time task management.
+| Module | Covers |
+| --- | --- |
+| Page Replacement | FIFO, LRU, LFU, Clock, Optimal, Belady's anomaly |
+| Memory Allocation | First / Best / Worst / Next Fit, fragmentation, compaction |
 
-- **Multi-Process Scheduling**  
-  Implementing multi-process scheduling for better CPU utilization and efficient concurrent task handling visualization.
+**Storage**
 
-- **Memory Allocation Algorithms**    
-  Implemention of First Fit, Best Fit and Wirst Fit memory allocation algorithms and it's visualization.
+| Module | Covers |
+| --- | --- |
+| Disk Scheduling | FCFS, SSTF, SCAN, LOOK, C-SCAN, C-LOOK |
 
+## What makes it a teaching tool
 
-## Tech Stack
+- **Real playback.** Every algorithm is simulated up front and played back, so you can pause,
+  step forward, rewind and scrub. Stepping backwards shows the state that actually produced the
+  result rather than re-running from scratch.
+- **Narration beside pseudocode.** Each step is explained in plain English next to the
+  algorithm's pseudocode, with the executing line highlighted, plus what the algorithm is good
+  and bad at.
+- **The failures are reachable.** Dining Philosophers genuinely deadlocks when philosophers take
+  one fork at a time, and four prevention strategies genuinely prevent it. Producer-Consumer has
+  a toggle that swaps the two `wait()` calls to reproduce the classic mutex-ordering deadlock.
+  Rate Monotonic really does miss deadlines at 97% utilization where EDF does not.
+- **Checked against textbook answers.** The algorithms are pure functions covered by 102 tests
+  pinned to worked examples: the Silberschatz disk and Banker's exercises, the standard page
+  reference strings, and the Liu & Layland bound.
 
-- React (TypeScript)
-- Vite
-- Tailwind CSS
-- shadcn-ui component library
+## Tech stack
 
-## Getting Started
+React (TypeScript) · Vite · Tailwind CSS · shadcn-ui · framer-motion · vitest
 
-### Prerequisites
-- Node.js (v16 or higher recommended)
-- npm (v8 or higher)
+## Getting started
 
-### Installation
+Requires Node.js 18+.
 
-Clone the repository:
-
-```
+```bash
 git clone https://github.com/srikrishna-ps/schedulr.git
 cd schedulr
-```
-
-Install dependencies:
-
-```
 npm install
-```
-
-Start the development server:
-
-```
 npm run dev
 ```
 
-The app will be available at `http://localhost:8080` (or as indicated in your terminal).
+The app runs at `http://localhost:8080/schedulr/`.
 
-## Usage
+| Command | Does |
+| --- | --- |
+| `npm run dev` | Start the dev server |
+| `npm test` | Run the test suite |
+| `npm run lint` | Lint |
+| `npm run build` | Production build into `dist/` |
 
-- Use the navigation bar (or the "Explore Module" button of the corresponding module) to explore different OS concepts modules.
-- Each module provides interactive controls and visualizations.
-- The UI is responsive and works on desktop, tablet, and mobile devices.
-
-## Deployment
-
-You can deploy this project using any static hosting provider (e.g., Vercel, Netlify, GitHub Pages) or through the Lovable platform.
-
-To build for production:
+## Project layout
 
 ```
-npm run build
+src/
+  lib/algorithms/   pure, tested algorithm implementations (one file per domain)
+  lib/explanations  the plain-English text and pseudocode shown in each module
+  lib/modules.ts    module registry shared by the router, nav and home page
+  hooks/            useSimulationPlayer - shared play/pause/step/scrub playback
+  components/       shared UI, including SimulationControls and ConceptPanel
+  pages/            one page per module
 ```
 
-The output will be in the `dist/` directory.
+Algorithms never touch React. Each exports a pure function returning the full sequence of steps,
+which is what makes them testable and what the playback engine renders.
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request for improvements or bug fixes.
+Contributions are welcome. If you change an algorithm, please add or update a test in
+`src/lib/algorithms/*.test.ts` with the worked example you checked it against — the point of this
+project is that the output can be trusted.
 
 ## License
 
-This project is provided for educational purposes.
+Provided for educational purposes.
 
 ---
 

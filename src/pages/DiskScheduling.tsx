@@ -375,7 +375,9 @@ const DiskScheduling = () => {
                 .sort((a, b) => a.totalSeek - b.totalSeek)
                 .map(item => {
                   const isCurrent = item.algorithm === algorithm;
-                  const width = (item.totalSeek / Math.max(...comparison.map(c => c.totalSeek))) * 100;
+                  // Guard the empty-queue case, where every total is 0.
+                  const worst = Math.max(...comparison.map(c => c.totalSeek), 1);
+                  const width = (item.totalSeek / worst) * 100;
                   return (
                     <button
                       key={item.algorithm}

@@ -334,7 +334,7 @@ export const stepReadersWriters = (
   let activeWriter = state.activeWriter;
   let reads = state.reads;
   let writes = state.writes;
-  let semaphores = { ...state.semaphores };
+  const semaphores = { ...state.semaphores };
 
   const { state: next } = stepActor(state, program, actorId, (effect, a) => {
     if (effect === 'enterRead') {
@@ -477,7 +477,7 @@ export const makeHungry = (state: DiningState, id: number): DiningState => {
  * deadlock impossible.
  */
 export const stepDining = (state: DiningState): DiningState => {
-  let forks = [...state.forks];
+  const forks = [...state.forks];
   let seats = state.seatsAvailable;
   let log = state.log;
 
