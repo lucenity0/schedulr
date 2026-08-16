@@ -1,122 +1,149 @@
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { SchedulingAlgorithm } from '@/types/scheduler';
-import { Cpu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Play, RotateCcw } from 'lucide-react';
+import { SchedulingAlgorithm } from '@/types/scheduler';
+import { cpuExplanations } from '@/lib/explanations';
+import { Cpu, RotateCcw } from 'lucide-react';
 
 interface AlgorithmSelectorProps {
   algorithm: SchedulingAlgorithm;
   onAlgorithmChange: (algorithm: SchedulingAlgorithm) => void;
   timeQuantum: number;
   onTimeQuantumChange: (quantum: number) => void;
-  onRunScheduler: () => void;
   onResetScheduler: () => void;
-  isCalculating: boolean;
   reversePriority: boolean;
   onReversePriorityChange: (value: boolean) => void;
 }
+
+export const ALGORITHM_GROUPS: {
+  label: string;
+  items: { value: SchedulingAlgorithm; label: string }[];
+}[] = [
+    {
+      label: 'Non-preemptive',
+      items: [
+        { value: 'FCFS', label: 'First Come First Serve (FCFS)' },
+        { value: 'SJF', label: 'Shortest Job First (SJF)' },
+        { value: 'LJF', label: 'Longest Job First (LJF)' },
+        { value: 'HRRN', label: 'Highest Response Ratio Next (HRRN)' },
+        { value: 'Priority', label: 'Priority Scheduling' }
+      ]
+    },
+    {
+      label: 'Preemptive',
+      items: [
+        { value: 'SRTF', label: 'Shortest Remaining Time First (SRTF)' },
+        { value: 'PriorityP', label: 'Priority Scheduling (Preemptive)' },
+        { value: 'RoundRobin', label: 'Round Robin' }
+      ]
+    },
+    {
+      label: 'Multilevel',
+      items: [
+        { value: 'MLQ', label: 'Multilevel Queue (MLQ)' },
+        { value: 'MLFQ', label: 'Multilevel Feedback Queue (MLFQ)' }
+      ]
+    }
+  ];
+
+export const NEEDS_PRIORITY: SchedulingAlgorithm[] = ['Priority', 'PriorityP', 'MLQ'];
 
 export const AlgorithmSelector = ({
   algorithm,
   onAlgorithmChange,
   timeQuantum,
   onTimeQuantumChange,
-  onRunScheduler,
   onResetScheduler,
-  isCalculating,
   reversePriority,
   onReversePriorityChange
-}: AlgorithmSelectorProps) => {
-  return (
-    <Card className="group border border-border/60 shadow-md bg-background/90 backdrop-blur-md transition-all duration-150 will-change-transform hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.025] hover:border-primary focus-within:border-primary bg-gradient-to-br from-card to-accent/10 border-primary/20">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Cpu className="w-5 h-5 text-primary" />
-          Scheduling Algorithm
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="algorithm">Algorithm</Label>
-          <Select value={algorithm} onValueChange={onAlgorithmChange}>
-            <SelectTrigger className="bg-background/50">
-              <SelectValue placeholder="Select algorithm" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover border-border">
-              <SelectItem value="FCFS">First Come First Serve (FCFS)</SelectItem>
-              <SelectItem value="SJF">Shortest Job First (SJF)</SelectItem>
-              <SelectItem value="SRTF">Shortest Remaining Time First (SRTF)</SelectItem>
-              <SelectItem value="Priority">Priority Scheduling</SelectItem>
-              <SelectItem value="PriorityP">Priority Scheduling (Preemptive)</SelectItem>
-              <SelectItem value="RoundRobin">Round Robin</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+}: AlgorithmSelectorProps) => (
+  <Card className="border border-border/60 shadow-md bg-background/90 backdrop-blur-md h-full">
+    <CardHeader className="pb-3">
+      <CardTitle className="flex items-center gap-2">
+        <Cpu className="w-5 h-5 text-primary" />
+        Scheduling algorithm
+      </CardTitle>
+    </CardHeader>
 
-        {algorithm === 'RoundRobin' && (
-          <div>
-            <Label htmlFor="timeQuantum">Time Quantum</Label>
-            <Input
-              id="timeQuantum"
-              type="number"
-              min="1"
-              value={timeQuantum}
-              onChange={(e) => onTimeQuantumChange(parseInt(e.target.value) || 1)}
-              className="bg-background/50"
+    <CardContent className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="algorithm">Algorithm</Label>
+        <Select value={algorithm} onValueChange={value => onAlgorithmChange(value as SchedulingAlgorithm)}>
+          <SelectTrigger id="algorithm" className="bg-background/50">
+            <SelectValue placeholder="Select algorithm" />
+          </SelectTrigger>
+          <SelectContent className="bg-popover border-border">
+            {ALGORITHM_GROUPS.map(group => (
+              <SelectGroup key={group.label}>
+                <SelectLabel className="text-xs text-muted-foreground">{group.label}</SelectLabel>
+                {group.items.map(item => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {(algorithm === 'RoundRobin' || algorithm === 'MLQ') && (
+        <div className="space-y-2">
+          <Label htmlFor="timeQuantum">
+            Time quantum{algorithm === 'MLQ' ? ' (system queue)' : ''}
+          </Label>
+          <Input
+            id="timeQuantum"
+            type="number"
+            min={1}
+            value={timeQuantum}
+            onChange={e => onTimeQuantumChange(Math.max(1, parseInt(e.target.value) || 1))}
+            className="bg-background/50"
+          />
+          <p className="text-xs text-muted-foreground">
+            Larger quantum → closer to FCFS. Smaller → more switching overhead.
+          </p>
+        </div>
+      )}
+
+      {algorithm === 'MLFQ' && (
+        <p className="text-xs text-muted-foreground p-3 bg-muted/20 rounded-lg border border-border/60">
+          Three queues with quanta 2, 4 and 8. A job that uses a whole slice drops a level; a job in
+          a higher queue preempts immediately.
+        </p>
+      )}
+
+      {NEEDS_PRIORITY.includes(algorithm) && (
+        <div className="flex items-center justify-between gap-3">
+          <Label className="text-sm font-normal">
+            {reversePriority ? 'Higher number = higher priority' : 'Lower number = higher priority'}
+          </Label>
+          <button
+            onClick={() => onReversePriorityChange(!reversePriority)}
+            className={`w-9 h-5 rounded-full relative transition-colors shrink-0 ${reversePriority ? 'bg-primary' : 'bg-muted-foreground/40'
+              }`}
+            role="switch"
+            aria-checked={reversePriority}
+            aria-label="Priority direction"
+          >
+            <span
+              className={`absolute w-4 h-4 bg-white rounded-full top-0.5 left-0.5 shadow-md transition-transform ${reversePriority ? 'translate-x-4' : 'translate-x-0'
+                }`}
             />
-          </div>
-        )}
-        {(algorithm === 'Priority' || algorithm === 'PriorityP') && (
-          <div className="flex items-center justify-between group relative">
-            <Label className="text-sm">
-              {reversePriority
-                ? "High number = High Priority"
-                : "Low number = High Priority"}
-            </Label>
-
-            {/* Toggle Switch */}
-            <button
-              onClick={() => onReversePriorityChange(!reversePriority)}
-              className={`w-9 h-5 rounded-full relative transition-colors duration-300 ease-in-out
-                ${reversePriority ? 'bg-green-500' : 'bg-red-500'}`}
-            >
-              <span
-                className={`absolute w-4 h-4 bg-white rounded-full top-0.5 left-0.5 shadow-md transform transition-transform duration-300 ease-in-out
-                  ${reversePriority ? 'translate-x-4' : 'translate-x-0'}`}
-              />
-            </button>
-          </div>
-        )}
-
-        <div className="text-sm text-muted-foreground p-3 bg-muted/20 rounded-lg border border-primary/10">
-          {algorithm === 'FCFS' && "Executes processes in order of arrival time."}
-          {algorithm === 'SJF' && "Executes shortest burst time process first (non-preemptive)."}
-          {algorithm === 'SRTF' && "Executes shortest remaining time process first (SJF preemptive)."}
-          {algorithm === 'Priority' && "Executes highest priority process first (lower number = higher priority)."}
-          {algorithm === 'PriorityP' && "Executes highest priority process first, preempting if a higher priority process arrives."}
-          {algorithm === 'RoundRobin' && "Each process gets equal time slices in cyclic manner."}
+          </button>
         </div>
-        <div className="flex gap-2 pt-2">
-          <Button
-            onClick={onRunScheduler}
-            disabled={isCalculating}
-            className="flex-1 bg-primary hover:bg-primary/90"
-          >
-            <Play className="w-4 h-4 mr-2" />
-            {isCalculating ? 'Scheduling...' : 'Run Scheduler'}
-          </Button>
-          <Button
-            onClick={onResetScheduler}
-            variant="outline"
-            className="border-primary/20 hover:bg-primary/10"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
+      )}
+
+      <div className="text-sm text-muted-foreground p-3 bg-muted/20 rounded-lg border border-border/60">
+        {cpuExplanations[algorithm]?.idea}
+      </div>
+
+      <Button onClick={onResetScheduler} variant="outline" className="w-full">
+        <RotateCcw className="w-4 h-4 mr-2" />
+        Reset to defaults
+      </Button>
+    </CardContent>
+  </Card>
+);

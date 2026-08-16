@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,330 +7,70 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { HardDrive } from 'lucide-react';
-import { LegendToggle } from "@/components/LegendToggle";
+import { SimulationControls } from '@/components/SimulationControls';
+import { ConceptPanel } from '@/components/ConceptPanel';
+import { useSimulationPlayer } from '@/hooks/useSimulationPlayer';
+import { diskExplanations } from '@/lib/explanations';
+import { spring, swift } from '@/lib/motion';
+import {
+  DiskAlgorithm,
+  Direction,
+  compareDisk,
+  parseRequests,
+  simulateDisk
+} from '@/lib/algorithms/disk';
 
+const ALGORITHMS: { value: DiskAlgorithm; label: string }[] = [
+  { value: 'FCFS', label: 'FCFS (First Come First Served)' },
+  { value: 'SSTF', label: 'SSTF (Shortest Seek Time First)' },
+  { value: 'SCAN', label: 'SCAN (Elevator)' },
+  { value: 'LOOK', label: 'LOOK' },
+  { value: 'C-SCAN', label: 'C-SCAN (Circular SCAN)' },
+  { value: 'C-LOOK', label: 'C-LOOK' }
+];
 
-interface DiskRequest {
-  track: number;
-  order: number;
-}
+// Chart geometry.
+const WIDTH = 760;
+const HEIGHT = 340;
+const PAD = { top: 28, right: 24, bottom: 28, left: 48 };
 
-interface SchedulingResult {
-  sequence: number[];
-  totalSeekTime: number;
-  algorithm: string;
-}
 const DiskScheduling = () => {
-  const [algorithm, setAlgorithm] = useState<'FCFS' | 'SSTF' | 'SCAN' | 'C-SCAN'>('FCFS');
-  const [initialHead, setInitialHead] = useState(50);
-  const [requests, setRequests] = useState('98,183,37,122,14,124,65,67');
-  const [scanDirection, setScanDirection] = useState<'left' | 'right'>('right');
+  const [algorithm, setAlgorithm] = useState<DiskAlgorithm>('SCAN');
+  const [head, setHead] = useState(53);
   const [diskSize, setDiskSize] = useState(200);
-  const [result, setResult] = useState<SchedulingResult | null>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [selectedTrack, setSelectedTrack] = useState<number | null>(null);
-  const [inputsLocked, setInputsLocked] = useState(false);
-  
+  const [direction, setDirection] = useState<Direction>('right');
+  const [input, setInput] = useState('98,183,37,122,14,124,65,67');
 
-  const simulateScheduling = () => {
-    setInputsLocked(true);
-    const requestList = requests.split(',')
-      .map(r => parseInt(r.trim()))
-      .filter(r => !isNaN(r) && r >= 0 && r < diskSize);
+  const requests = useMemo(() => parseRequests(input, diskSize), [input, diskSize]);
 
-    if (requestList.length === 0) return;
+  const options = useMemo(
+    () => ({ head, requests, diskSize, direction }),
+    [head, requests, diskSize, direction]
+  );
 
-    let sequence: number[] = [];
-    let totalSeekTime = 0;
-    let currentPos = initialHead;
+  const result = useMemo(() => simulateDisk(algorithm, options), [algorithm, options]);
+  const comparison = useMemo(() => compareDisk(options), [options]);
 
-    switch (algorithm) {
-      case 'FCFS':
-        sequence = [initialHead, ...requestList];
-        for (let i = 1; i < sequence.length; i++) {
-          totalSeekTime += Math.abs(sequence[i] - sequence[i - 1]);
-        }
-        break;
+  const player = useSimulationPlayer(result.moves, { baseInterval: 900 });
+  const { step, current, history } = player;
 
-      case 'SSTF':
-        const remaining = [...requestList];
-        sequence = [initialHead];
+  const headPosition = step ? step.to : head;
+  const seekSoFar = step ? step.totalSoFar : 0;
 
-        while (remaining.length > 0) {
-          let minDistance = Infinity;
-          let nextIndex = 0;
+  // Map a track number onto the x axis; service order onto the y axis.
+  const plotWidth = WIDTH - PAD.left - PAD.right;
+  const plotHeight = HEIGHT - PAD.top - PAD.bottom;
+  const x = (track: number) => PAD.left + (track / (diskSize - 1)) * plotWidth;
+  const y = (index: number) =>
+    PAD.top + (result.moves.length ? (index / result.moves.length) * plotHeight : 0);
 
-          remaining.forEach((track, index) => {
-            const distance = Math.abs(track - currentPos);
-            if (distance < minDistance) {
-              minDistance = distance;
-              nextIndex = index;
-            }
-          });
+  const points = [{ track: head, index: 0 }, ...result.moves.map((m, i) => ({ track: m.to, index: i + 1 }))];
+  const visiblePoints = points.slice(0, current + 1);
 
-          const nextTrack = remaining.splice(nextIndex, 1)[0];
-          sequence.push(nextTrack);
-          totalSeekTime += Math.abs(nextTrack - currentPos);
-          currentPos = nextTrack;
-        }
-        break;
+  const pathFor = (list: typeof points) =>
+    list.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(p.track)} ${y(p.index)}`).join(' ');
 
-      case 'SCAN':
-        const sortedRequests = [...requestList].sort((a, b) => a - b);
-        sequence = [initialHead];
-
-        if (scanDirection === 'right') {
-          // Go right first
-          const rightRequests = sortedRequests.filter(r => r >= initialHead);
-          const leftRequests = sortedRequests.filter(r => r < initialHead).reverse();
-
-          rightRequests.forEach(track => {
-            sequence.push(track);
-            totalSeekTime += Math.abs(track - currentPos);
-            currentPos = track;
-          });
-
-          if (leftRequests.length > 0) {
-            // Go to end of disk if there were right requests
-            if (rightRequests.length > 0) {
-              sequence.push(diskSize - 1);
-              totalSeekTime += Math.abs((diskSize - 1) - currentPos);
-              currentPos = diskSize - 1;
-            }
-
-            leftRequests.forEach(track => {
-              sequence.push(track);
-              totalSeekTime += Math.abs(track - currentPos);
-              currentPos = track;
-            });
-          }
-        } else {
-          // Go left first
-          const leftRequests = sortedRequests.filter(r => r <= initialHead).reverse();
-          const rightRequests = sortedRequests.filter(r => r > initialHead);
-
-          leftRequests.forEach(track => {
-            sequence.push(track);
-            totalSeekTime += Math.abs(track - currentPos);
-            currentPos = track;
-          });
-
-          if (rightRequests.length > 0) {
-            // Go to start of disk if there were left requests
-            if (leftRequests.length > 0) {
-              sequence.push(0);
-              totalSeekTime += Math.abs(0 - currentPos);
-              currentPos = 0;
-            }
-
-            rightRequests.forEach(track => {
-              sequence.push(track);
-              totalSeekTime += Math.abs(track - currentPos);
-              currentPos = track;
-            });
-          }
-        }
-        break;
-
-      case 'C-SCAN':
-        const sortedCRequests = [...requestList].sort((a, b) => a - b);
-        sequence = [initialHead];
-
-        if (scanDirection === 'right') {
-          const rightRequests = sortedCRequests.filter(r => r >= initialHead);
-          const leftRequests = sortedCRequests.filter(r => r < initialHead);
-
-          rightRequests.forEach(track => {
-            sequence.push(track);
-            totalSeekTime += Math.abs(track - currentPos);
-            currentPos = track;
-          });
-
-          if (leftRequests.length > 0) {
-            // Jump to beginning
-            sequence.push(diskSize - 1);
-            totalSeekTime += Math.abs((diskSize - 1) - currentPos);
-            sequence.push(0);
-            totalSeekTime += diskSize - 1;
-            currentPos = 0;
-
-            leftRequests.forEach(track => {
-              sequence.push(track);
-              totalSeekTime += Math.abs(track - currentPos);
-              currentPos = track;
-            });
-          }
-        }
-        break;
-    }
-
-    setResult({
-      sequence,
-      totalSeekTime,
-      algorithm
-    });
-    setCurrentStep(0);
-  };
-
-  const animateStep = async () => {
-    if (!result || currentStep >= result.sequence.length - 1) return;
-
-    setIsAnimating(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setCurrentStep(prev => prev + 1);
-    setIsAnimating(false);
-  };
-
-  const resetAnimation = () => {
-    setCurrentStep(0);
-    setIsAnimating(false);
-    setInputsLocked(false); // unlock inputs
-    setResult(null);
-  };
-
-  const renderDiskVisualization = () => {
-    if (!result) return null;
-
-    const trackHeight = 300;
-    const trackWidth = 40;
-    const maxTrack = diskSize - 1;
-
-    return (
-      <div className="flex justify-center p-4">
-        <div className="relative" style={{ height: trackHeight + 40, width: trackWidth + 200 }}>
-          {/* Disk track */}
-          <div
-            className="absolute bg-muted border border-border rounded"
-            style={{
-              left: trackWidth,
-              top: 20,
-              width: 20,
-              height: trackHeight
-            }}
-          />
-
-          {/* Track numbers */}
-          {[0, 50, 100, 150, maxTrack].map(track => (
-            <div
-              key={track}
-              className="absolute text-xs text-muted-foreground"
-              style={{
-                left: trackWidth - 30,
-                top: 20 + (track / maxTrack) * (trackHeight - 20),
-                transform: 'translateY(-50%)'
-              }}
-            >
-              {track}
-            </div>
-          ))}
-
-          {/* Request positions */}
-          {requests.split(',').map((req, index) => {
-            const track = parseInt(req.trim());
-            if (isNaN(track)) return null;
-
-            const y = 20 + (track / maxTrack) * (trackHeight - 20);
-            const isCompleted = result.sequence.slice(1, currentStep + 1).includes(track);
-            const isNext = result.sequence[currentStep + 1] === track;
-
-            return (
-              <div
-                key={index}
-                className="absolute"
-                style={{
-                  left: trackWidth + 25,
-                  top: y,
-                  transform: 'translateY(-50%)',
-                  zIndex: 10, 
-                }}
-              >
-                <div className="relative flex items-center">
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTrack((prev) => (prev === track ? null : track));
-                    }}
-                    className={`w-3 h-3 rounded-full border-2 cursor-pointer ${
-                      isCompleted
-                        ? 'bg-green-500 border-green-600'
-                        : isNext
-                        ? 'bg-yellow-500 border-yellow-600 animate-pulse'
-                        : 'bg-blue-500 border-blue-600'
-                    }`}
-                    tabIndex={0}
-                    role="button"
-                    aria-label={`Show track ${track}`}
-                  />
-                  {selectedTrack === track && (
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 bg-black text-white text-xs px-2 py-0.5 rounded shadow z-50">
-                      {track}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-
-          {/* Current head position */}
-          {currentStep < result.sequence.length && (
-            <div
-              className="absolute w-0 h-0 border-l-[8px] border-r-[8px] border-b-[12px] border-l-transparent border-r-transparent border-b-red-500"
-              style={{
-                left: trackWidth + 5,
-                top: 20 + (result.sequence[currentStep] / maxTrack) * (trackHeight - 20),
-                transform: 'translateY(-50%) rotate(90deg)'
-              }}
-            />
-          )}
-
-          {/* Path visualization */}
-          {currentStep > 0 && (
-            <svg
-              className="absolute"
-              style={{
-                left: trackWidth + 10,
-                top: 20,
-                width: 200, // Adjust width as needed
-                height: trackHeight
-              }}
-            >
-              {result.sequence.slice(0, currentStep + 1).map((track, index) => {
-                if (index === 0) return null;
-                const prevTrack = result.sequence[index - 1];
-                const y1 = (prevTrack / maxTrack) * (trackHeight - 20);
-                const y2 = (track / maxTrack) * (trackHeight - 20);
-
-                const baseX = 10;
-                const xIncrement = 20;
-                const x1 = baseX + (index - 1) * xIncrement;
-                const x2 = baseX + index * xIncrement;
-
-                return (
-                  <g key={index}>
-                    <line
-                      x1={x1}
-                      y1={y1}
-                      x2={x2}
-                      y2={y2}
-                      stroke="red"
-                      strokeWidth="2"
-                      strokeOpacity="0.8"
-                    />
-                    {/* Dots at both ends of the line */}
-                    <circle cx={x1} cy={y1} r="4" fill="white" />
-                    {/* On the last line, add dot at x2,y2 */}
-                    {index === currentStep ? <circle cx={x2} cy={y2} r="3" fill="white" /> : null}
-                  </g>
-                );
-              })}
-            </svg>
-          )}
-        </div>
-      </div>
-    );
-  };
+  const best = comparison.reduce((a, b) => (a.totalSeek <= b.totalSeek ? a : b));
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -339,236 +80,341 @@ const DiskScheduling = () => {
             <div className="p-2 bg-primary/20 rounded-lg">
               <HardDrive className="w-8 h-8 text-primary" />
             </div>
-            Disk Scheduling Algorithms
+            Disk Scheduling
           </CardTitle>
           <p className="text-muted-foreground text-lg">
-            Visualize disk head movement and optimize seek times using interactive scheduling strategy simulations.
+            Every track the head crosses costs time. Watch the arm move and see how much distance
+            each algorithm saves.
           </p>
         </CardHeader>
       </Card>
 
-      <Card className="group border border-border/60 shadow-md bg-background/90 backdrop-blur-md transition-all duration-150 will-change-transform hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.025] hover:border-primary focus-within:border-primary">
-        <CardHeader>
+      {/* Configuration */}
+      <Card className="border border-border/60 shadow-md bg-background/90 backdrop-blur-md">
+        <CardHeader className="pb-4">
           <CardTitle>Configuration</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
+        <CardContent className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="space-y-2 lg:col-span-2">
               <Label htmlFor="algorithm">Algorithm</Label>
-              <Select value={algorithm} onValueChange={(value: any) => setAlgorithm(value)} disabled={inputsLocked}>
-                <SelectTrigger>
+              <Select value={algorithm} onValueChange={value => setAlgorithm(value as DiskAlgorithm)}>
+                <SelectTrigger id="algorithm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="FCFS">FCFS (First Come First Served)</SelectItem>
-                  <SelectItem value="SSTF">SSTF (Shortest Seek Time First)</SelectItem>
-                  <SelectItem value="SCAN">SCAN (Elevator Algorithm)</SelectItem>
-                  <SelectItem value="C-SCAN">C-SCAN (Circular SCAN)</SelectItem>
+                  {ALGORITHMS.map(item => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="head">Initial Head Position</Label>
+              <Label htmlFor="head">Initial head</Label>
               <Input
                 id="head"
                 type="number"
-                min="0"
+                min={0}
                 max={diskSize - 1}
-                value={initialHead}
-                onChange={(e) => setInitialHead(parseInt(e.target.value) || 0)}
-                disabled={inputsLocked}
+                value={head}
+                onChange={e => setHead(Math.max(0, Math.min(diskSize - 1, parseInt(e.target.value) || 0)))}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="diskSize">Disk Size (tracks)</Label>
+              <Label htmlFor="size">Disk size (tracks)</Label>
               <Input
-                id="diskSize"
+                id="size"
                 type="number"
-                min="100"
-                max="1000"
+                min={10}
+                max={1000}
                 value={diskSize}
-                onChange={(e) => setDiskSize(parseInt(e.target.value) || 200)}
-                disabled={inputsLocked}
+                onChange={e => setDiskSize(Math.max(10, parseInt(e.target.value) || 200))}
               />
             </div>
 
-            {(algorithm === 'SCAN' || algorithm === 'C-SCAN') && (
-              <div className="space-y-2">
-                <Label htmlFor="direction">Initial Direction</Label>
-                <Select value={scanDirection} onValueChange={(value: any) => setScanDirection(value)} disabled={inputsLocked}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="left">Left (towards 0)</SelectItem>
-                    <SelectItem value="right">Right (towards end)</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="space-y-2">
+              <Label>Direction</Label>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant={direction === 'left' ? 'default' : 'outline'}
+                  onClick={() => setDirection('left')}
+                  className="flex-1"
+                >
+                  ← Down
+                </Button>
+                <Button
+                  size="sm"
+                  variant={direction === 'right' ? 'default' : 'outline'}
+                  onClick={() => setDirection('right')}
+                  className="flex-1"
+                >
+                  Up →
+                </Button>
               </div>
-            )}
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="requests">Disk Requests (comma-separated track numbers)</Label>
+            <Label htmlFor="requests">Request queue</Label>
             <Input
               id="requests"
-              placeholder="98,183,37,122,14,124,65,67"
-              value={requests}
-              onChange={(e) => setRequests(e.target.value)}
-              disabled={inputsLocked}
+              placeholder="98,183,37,122"
+              value={input}
+              onChange={e => setInput(e.target.value)}
             />
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={simulateScheduling} disabled={inputsLocked}>
-              Generate Schedule
-            </Button>
-            {result && (
-              <>
-                <Button
-                  onClick={animateStep}
-                  disabled={isAnimating || currentStep >= result.sequence.length - 1}
-                >
-                  Next Step
-                </Button>
-                {/*button for step back*/}
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
-                  disabled={isAnimating || currentStep <= 0}
-                >
-                  Previous Step
-                </Button>
-                <Button variant="outline"
-                  onClick={() => setCurrentStep(result.sequence.length - 1)}
-                  disabled={isAnimating || currentStep >= result.sequence.length - 1}
-                >
-                  Skip to Result
-                </Button>
-                <Button variant="outline" onClick={resetAnimation}>
-                  Reset Animation
-                </Button>
-              </>
-            )}
-          </div>
+          <SimulationControls player={player} label={`Seek ${current} / ${result.moves.length}`} />
         </CardContent>
       </Card>
 
-      {result && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="group border border-border/60 shadow-md bg-background/90 backdrop-blur-md transition-all duration-150 will-change-transform hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.025] hover:border-primary focus-within:border-primary lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Disk Visualization</CardTitle>
-              <CardDescription>
-                Step {currentStep + 1} of {result.sequence.length} - Current Position: {result.sequence[currentStep]}
-              </CardDescription>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Head movement chart */}
+        <Card className="lg:col-span-2 border border-border/60 shadow-md bg-background/90 backdrop-blur-md">
+          <CardHeader className="pb-2">
+            <CardTitle>Head movement</CardTitle>
+            <CardDescription>
+              Track number across the top, service order down the side. A steeper line means a
+              longer seek.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <svg
+                viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+                className="w-full min-w-[560px]"
+                role="img"
+                aria-label="Disk head movement chart"
+              >
+                {/* Track axis */}
+                {Array.from({ length: 5 }, (_, i) => Math.round((i * (diskSize - 1)) / 4)).map(track => (
+                  <g key={track}>
+                    <line
+                      x1={x(track)}
+                      y1={PAD.top - 8}
+                      x2={x(track)}
+                      y2={HEIGHT - PAD.bottom}
+                      stroke="hsl(var(--border))"
+                      strokeDasharray="2 4"
+                    />
+                    <text
+                      x={x(track)}
+                      y={PAD.top - 14}
+                      textAnchor="middle"
+                      className="fill-muted-foreground"
+                      style={{ fontSize: 11 }}
+                    >
+                      {track}
+                    </text>
+                  </g>
+                ))}
+
+                {/* Pending requests sit on the top rule */}
+                {requests.map(track => {
+                  const done = history.some(m => m.serviced && m.to === track);
+                  return (
+                    <motion.circle
+                      key={`req-${track}`}
+                      cx={x(track)}
+                      cy={PAD.top - 2}
+                      r={4}
+                      animate={{
+                        fill: done ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                        opacity: done ? 1 : 0.45
+                      }}
+                      transition={swift}
+                    />
+                  );
+                })}
+
+                {/* The path travelled so far */}
+                <motion.path
+                  d={pathFor(visiblePoints)}
+                  fill="none"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  initial={false}
+                  animate={{ opacity: 1 }}
+                />
+
+                {/* The route still to come, faint */}
+                <path
+                  d={pathFor(points)}
+                  fill="none"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth={1}
+                  strokeDasharray="3 5"
+                  opacity={0.25}
+                />
+
+                {/* Stops */}
+                {visiblePoints.map((point, index) => {
+                  const move = index > 0 ? result.moves[index - 1] : null;
+                  return (
+                    <g key={`${point.track}-${index}`}>
+                      <circle
+                        cx={x(point.track)}
+                        cy={y(point.index)}
+                        r={index === visiblePoints.length - 1 ? 6 : 4}
+                        fill={
+                          move && move.wrap
+                            ? 'hsl(var(--muted-foreground))'
+                            : move && !move.serviced
+                              ? 'hsl(var(--muted-foreground))'
+                              : 'hsl(var(--primary))'
+                        }
+                      />
+                      <text
+                        x={x(point.track)}
+                        y={y(point.index) - 10}
+                        textAnchor="middle"
+                        className="fill-foreground"
+                        style={{ fontSize: 10, fontFamily: 'monospace' }}
+                      >
+                        {point.track}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* The head itself */}
+                <motion.g
+                  animate={{ x: x(headPosition), y: y(current) }}
+                  transition={spring}
+                  initial={false}
+                >
+                  <circle r={9} fill="hsl(var(--primary))" opacity={0.25} />
+                  <circle r={4.5} fill="hsl(var(--primary))" />
+                </motion.g>
+              </svg>
+            </div>
+
+            {/* Service sequence */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-4">
+              {result.sequence.map((track, index) => (
+                <motion.span
+                  key={index}
+                  animate={{ opacity: index <= current ? 1 : 0.3, scale: index === current ? 1.1 : 1 }}
+                  transition={swift}
+                  className={`px-2 py-1 rounded-md border text-xs font-mono ${index === 0
+                    ? 'border-primary/60 bg-primary/10'
+                    : index <= current
+                      ? 'border-primary/40 bg-primary/5'
+                      : 'border-border bg-muted/20'
+                    }`}
+                >
+                  {track}
+                </motion.span>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Numbers */}
+        <div className="space-y-6">
+          <Card className="border border-border/60 shadow-md bg-background/90 backdrop-blur-md">
+            <CardHeader className="pb-3">
+              <CardTitle>Seek time</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-row items-start justify-between w-full">
-              <div>{renderDiskVisualization()}</div>
-              <LegendToggle />
+            <CardContent className="space-y-4">
+              <div>
+                <div className="text-xs text-muted-foreground">Total head movement so far</div>
+                <motion.div
+                  key={seekSoFar}
+                  initial={{ scale: 1.15, color: 'hsl(var(--primary))' }}
+                  animate={{ scale: 1, color: 'hsl(var(--foreground))' }}
+                  transition={spring}
+                  className="text-4xl font-bold font-mono"
+                >
+                  {seekSoFar}
+                </motion.div>
+                <div className="text-xs text-muted-foreground">
+                  of {result.totalSeek} tracks total
+                </div>
+              </div>
+
+              {result.wrapSeek > 0 && (
+                <div className="text-xs text-muted-foreground border-t border-border/60 pt-3">
+                  Includes <span className="font-mono text-foreground">{result.wrapSeek}</span>{' '}
+                  tracks of circular jump. Some textbooks exclude this — without it the total is{' '}
+                  <span className="font-mono text-foreground">
+                    {result.totalSeek - result.wrapSeek}
+                  </span>
+                  .
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3 border-t border-border/60 pt-3">
+                <div>
+                  <div className="text-xs text-muted-foreground">Requests</div>
+                  <div className="text-xl font-bold font-mono">{requests.length}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Avg per request</div>
+                  <div className="text-xl font-bold font-mono">
+                    {result.averageSeek.toFixed(1)}
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <div className="space-y-6">
-            <Card className="group border border-border/60 shadow-md bg-background/90 backdrop-blur-md transition-all duration-150 will-change-transform hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.025] hover:border-primary focus-within:border-primary">
-              <CardHeader>
-                <CardTitle>Statistics</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between">
-                  <span>Algorithm:</span>
-                  <Badge variant="outline">{result.algorithm}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>Total Seek Time:</span>
-                  <Badge variant="destructive">{result.totalSeekTime}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>Average Seek Time:</span>
-                  <Badge variant="outline">
-                    {(result.totalSeekTime / (result.sequence.length - 1)).toFixed(1)}
-                  </Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>Requests Served:</span>
-                  <Badge>{result.sequence.length - 1}</Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="group border border-border/60 shadow-md bg-background/90 backdrop-blur-md transition-all duration-150 will-change-transform hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.025] hover:border-primary focus-within:border-primary">
-              <CardHeader>
-                <CardTitle>Seek Sequence</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {result.sequence.map((track, index) => (
-                    <div
-                      key={index}
-                      className={`flex items-center justify-between p-2 rounded ${index === currentStep ? 'bg-primary/20 border border-primary' :
-                        index < currentStep ? 'bg-green-500/10' :
-                          'bg-muted/50'
-                        }`}
+          <Card className="border border-border/60 shadow-md bg-background/90 backdrop-blur-md">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">All algorithms, same input</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {[...comparison]
+                .sort((a, b) => a.totalSeek - b.totalSeek)
+                .map(item => {
+                  const isCurrent = item.algorithm === algorithm;
+                  const width = (item.totalSeek / Math.max(...comparison.map(c => c.totalSeek))) * 100;
+                  return (
+                    <button
+                      key={item.algorithm}
+                      onClick={() => setAlgorithm(item.algorithm)}
+                      className="w-full text-left group"
                     >
-                      <span className="text-sm">
-                        {index === 0 ? 'Start' : `Request ${index}`}
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="outline">{track}</Badge>
-                        {index > 0 && (
-                          <Badge variant="secondary" className="text-xs">
-                            +{Math.abs(track - result.sequence[index - 1])}
-                          </Badge>
-                        )}
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className={isCurrent ? 'text-primary font-medium' : ''}>
+                          {item.algorithm}
+                          {item.algorithm === best.algorithm && (
+                            <Badge variant="outline" className="ml-1.5 text-[10px] px-1 py-0 border-primary/40 text-primary">
+                              best
+                            </Badge>
+                          )}
+                        </span>
+                        <span className="font-mono text-muted-foreground">{item.totalSeek}</span>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                      <div className="h-2 rounded-full bg-muted/40 overflow-hidden">
+                        <motion.div
+                          animate={{ width: `${width}%` }}
+                          transition={spring}
+                          className={`h-full rounded-full ${isCurrent ? 'bg-primary' : 'bg-muted-foreground/40 group-hover:bg-muted-foreground/60'
+                            }`}
+                        />
+                      </div>
+                    </button>
+                  );
+                })}
+            </CardContent>
+          </Card>
         </div>
-      )}
+      </div>
 
-      <Card className="group border border-border/60 shadow-md bg-background/90 backdrop-blur-md transition-all duration-150 will-change-transform hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.025] hover:border-primary focus-within:border-primary">
-        <CardHeader>
-          <CardTitle>Algorithm Descriptions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <div>
-                <h4 className="font-medium">FCFS (First Come First Served)</h4>
-                <p className="text-sm text-muted-foreground">
-                  Services requests in the order they arrive. Simple but may cause large seek times.
-                </p>
-              </div>
-              <div>
-                <h4 className="font-medium">SSTF (Shortest Seek Time First)</h4>
-                <p className="text-sm text-muted-foreground">
-                  Always selects the request with minimum seek time from current position. May cause starvation.
-                </p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <h4 className="font-medium">SCAN (Elevator Algorithm)</h4>
-                <p className="text-sm text-muted-foreground">
-                  Head moves in one direction, services all requests in that direction, then reverses.
-                </p>
-              </div>
-              <div>
-                <h4 className="font-medium">C-SCAN (Circular SCAN)</h4>
-                <p className="text-sm text-muted-foreground">
-                  Like SCAN but only services requests in one direction, then jumps to the other end.
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <ConceptPanel
+        title={algorithm}
+        explanation={diskExplanations[algorithm]}
+        narration={step?.narration}
+        activeLine={step ? (step.wrap ? 2 : step.serviced ? 1 : 2) : undefined}
+      />
     </div>
   );
 };
