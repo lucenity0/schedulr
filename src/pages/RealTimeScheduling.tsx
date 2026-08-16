@@ -15,6 +15,7 @@ import {
   simulateRealTime
 } from '@/lib/algorithms/realtime';
 import { Plus, Timer, Trash2, TriangleAlert } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 const DEFAULT_TASKS: PeriodicTask[] = [
   { id: 'T1', computation: 2, period: 5 },
@@ -57,20 +58,10 @@ const RealTimeScheduling = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <Card className="bg-gradient-to-r from-primary/20 via-primary/10 to-transparent border-primary/30 mt-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-2xl md:text-3xl">
-            <div className="p-2 bg-primary/20 rounded-lg">
-              <Timer className="w-8 h-8 text-primary" />
-            </div>
-            Real-Time Scheduling
-          </CardTitle>
-          <p className="text-muted-foreground text-lg">
-            Periodic tasks with hard deadlines. Rate Monotonic fixes priorities up front; EDF
+      <PageHeader icon={Timer} title="Real-Time Scheduling">
+        Periodic tasks with hard deadlines. Rate Monotonic fixes priorities up front; EDF
             re-decides them constantly — and only one of them is optimal.
-          </p>
-        </CardHeader>
-      </Card>
+      </PageHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Task set */}

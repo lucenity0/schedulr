@@ -69,21 +69,23 @@ export const SimulationControls = <T,>({
           size="sm"
           variant="outline"
         >
-          <SkipForward className="h-4 w-4 mr-2" /> Skip to result
+          <SkipForward className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Skip to result</span>
         </Button>
 
         <Button onClick={player.reset} disabled={!hasSteps || current === 0} size="sm" variant="outline">
-          <RotateCcw className="h-4 w-4 mr-2" /> Restart
+          <RotateCcw className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Restart</span>
         </Button>
 
-        <div className="flex items-center gap-1 ml-auto">
+        <div className="flex items-center gap-0.5 sm:gap-1 ml-auto">
           {SPEEDS.map(value => (
             <Button
               key={value}
               onClick={() => player.setSpeed(value)}
               size="sm"
               variant={speed === value ? 'default' : 'ghost'}
-              className="px-2 h-8 text-xs font-mono"
+              className="px-1.5 sm:px-2 h-8 text-[11px] sm:text-xs font-mono"
               aria-pressed={speed === value}
             >
               {value}x

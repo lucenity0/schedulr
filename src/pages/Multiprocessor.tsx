@@ -19,6 +19,7 @@ import {
   threadModels
 } from '@/lib/algorithms/multiprocessor';
 import { Cpu, Layers } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 const PROCESSES: Process[] = [
   { id: 'P1', arrivalTime: 0, burstTime: 5 },
@@ -440,27 +441,17 @@ const Models = () => {
 
 const Multiprocessor = () => (
   <div className="space-y-6 max-w-7xl mx-auto">
-    <Card className="bg-gradient-to-r from-primary/20 via-primary/10 to-transparent border-primary/30 mt-4">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3 text-2xl md:text-3xl">
-          <div className="p-2 bg-primary/20 rounded-lg">
-            <Layers className="w-8 h-8 text-primary" />
-          </div>
-          Multiprocessor &amp; Thread Scheduling
-        </CardTitle>
-        <p className="text-muted-foreground text-lg">
-          With more than one CPU the question is not just who runs next, but where &mdash; and
+    <PageHeader icon={Layers} title="Multiprocessor & Thread Scheduling">
+        With more than one CPU the question is not just who runs next, but where &mdash; and
           keeping a cache warm pulls against keeping the cores busy.
-        </p>
-      </CardHeader>
-    </Card>
+      </PageHeader>
 
     <Tabs defaultValue="scheduling" className="space-y-6">
-      <TabsList className="grid grid-cols-2 w-full h-auto gap-2 bg-background/90 border border-border/60 shadow-md rounded-xl p-2">
-        <TabsTrigger value="scheduling" className="py-2.5 font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
+      <TabsList className="grid grid-cols-2 w-full h-auto gap-1.5 sm:gap-2 bg-background/90 border border-border/60 shadow-md rounded-xl p-1.5 sm:p-2">
+        <TabsTrigger value="scheduling" className="py-2 sm:py-2.5 px-2 text-xs sm:text-sm font-semibold whitespace-normal leading-tight data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
           Multiple-processor scheduling
         </TabsTrigger>
-        <TabsTrigger value="models" className="py-2.5 font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
+        <TabsTrigger value="models" className="py-2 sm:py-2.5 px-2 text-xs sm:text-sm font-semibold whitespace-normal leading-tight data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
           Multithreading models
         </TabsTrigger>
       </TabsList>

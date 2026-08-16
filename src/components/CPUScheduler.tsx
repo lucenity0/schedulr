@@ -6,7 +6,7 @@ import { GanttChart } from './GanttChart';
 import { MetricsPanel } from './MetricsPanel';
 import { SimulationControls } from './SimulationControls';
 import { ConceptPanel } from './ConceptPanel';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Process, SchedulingAlgorithm } from '@/types/scheduler';
 import {
   CpuResult,
@@ -24,6 +24,7 @@ import {
 import { useSimulationPlayer } from '@/hooks/useSimulationPlayer';
 import { cpuExplanations } from '@/lib/explanations';
 import { Cpu } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 const DEFAULT_PROCESSES: Process[] = [
   { id: 'P1', arrivalTime: 0, burstTime: 7, priority: 3 },
@@ -94,20 +95,10 @@ export const CPUScheduler = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
-        <Card className="bg-gradient-to-r from-primary/20 via-primary/10 to-transparent border-primary/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-2xl md:text-3xl">
-              <div className="p-2 bg-primary/20 rounded-lg">
-                <Cpu className="w-8 h-8 text-primary" />
-              </div>
-              CPU Scheduling Simulator
-            </CardTitle>
-            <p className="text-muted-foreground text-lg">
-              Ten algorithms, one timeline. Step through each decision and see exactly why the
+        <PageHeader icon={Cpu} title="CPU Scheduling Simulator">
+        Ten algorithms, one timeline. Step through each decision and see exactly why the
               scheduler picked the process it did.
-            </p>
-          </CardHeader>
-        </Card>
+      </PageHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-7">

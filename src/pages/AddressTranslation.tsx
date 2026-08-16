@@ -20,6 +20,7 @@ import {
   updateTlb
 } from '@/lib/algorithms/addressing';
 import { MemoryStick, MoveRight } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 const DEFAULT_FRAMES = [5, 6, 1, 2, 9, 11, 7, 3];
 
@@ -487,28 +488,18 @@ const Segmentation = () => {
 
 const AddressTranslation = () => (
   <div className="space-y-6 max-w-7xl mx-auto">
-    <Card className="bg-gradient-to-r from-primary/20 via-primary/10 to-transparent border-primary/30 mt-4">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3 text-2xl md:text-3xl">
-          <div className="p-2 bg-primary/20 rounded-lg">
-            <MemoryStick className="w-8 h-8 text-primary" />
-          </div>
-          Address Translation
-        </CardTitle>
-        <p className="text-muted-foreground text-lg">
-          How a logical address becomes a physical one. This is the &ldquo;paging&rdquo; of memory
+    <PageHeader icon={MemoryStick} title="Address Translation">
+        How a logical address becomes a physical one. This is the &ldquo;paging&rdquo; of memory
           management &mdash; a different question from page <em>replacement</em>, which decides what
           to evict.
-        </p>
-      </CardHeader>
-    </Card>
+      </PageHeader>
 
     <Tabs defaultValue="paging" className="space-y-6">
-      <TabsList className="grid grid-cols-2 w-full h-auto gap-2 bg-background/90 border border-border/60 shadow-md rounded-xl p-2">
-        <TabsTrigger value="paging" className="py-2.5 font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
+      <TabsList className="grid grid-cols-2 w-full h-auto gap-1.5 sm:gap-2 bg-background/90 border border-border/60 shadow-md rounded-xl p-1.5 sm:p-2">
+        <TabsTrigger value="paging" className="py-2 sm:py-2.5 px-2 text-xs sm:text-sm font-semibold whitespace-normal leading-tight data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
           Paging &amp; TLB
         </TabsTrigger>
-        <TabsTrigger value="segmentation" className="py-2.5 font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
+        <TabsTrigger value="segmentation" className="py-2 sm:py-2.5 px-2 text-xs sm:text-sm font-semibold whitespace-normal leading-tight data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
           Segmentation
         </TabsTrigger>
       </TabsList>

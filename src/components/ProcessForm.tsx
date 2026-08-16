@@ -58,7 +58,7 @@ export const ProcessForm = ({ processes, onProcessesChange, needsPriority }: Pro
   };
 
   return (
-    <Card className="group border border-border/60 shadow-md bg-background/90 backdrop-blur-md transition-all duration-150 will-change-transform hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.025] hover:border-primary focus-within:border-primary bg-gradient-to-br from-card to-muted/20 border-primary/20">
+    <Card className="border border-border/60 shadow-md bg-background/90 backdrop-blur-md bg-gradient-to-br from-card to-muted/20 border-primary/20">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
@@ -67,9 +67,13 @@ export const ProcessForm = ({ processes, onProcessesChange, needsPriority }: Pro
       </CardHeader>
       <CardContent className="space-y-4">
         {processes.map((process, index) => (
-          <div key={index} className="grid grid-cols-4 gap-4 p-4 bg-muted/10 rounded-lg border border-primary/10 items-end">
+          <div
+            key={index}
+            className={`grid grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-muted/10 rounded-lg border border-primary/10 items-end ${needsPriority ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+              }`}
+          >
             <div>
-              <Label htmlFor={`id-${index}`}>Process ID</Label>
+              <Label htmlFor={`id-${index}`} className="text-xs sm:text-sm">Process ID</Label>
               <Input
                 id={`id-${index}`}
                 value={process.id}
@@ -78,7 +82,7 @@ export const ProcessForm = ({ processes, onProcessesChange, needsPriority }: Pro
               />
             </div>
             <div>
-              <Label htmlFor={`arrival-${index}`}>Arrival Time</Label>
+              <Label htmlFor={`arrival-${index}`} className="text-xs sm:text-sm">Arrival</Label>
               <NumberField
                 id={`arrival-${index}`}
                 min={0}
@@ -88,7 +92,7 @@ export const ProcessForm = ({ processes, onProcessesChange, needsPriority }: Pro
               />
             </div>
             <div>
-              <Label htmlFor={`burst-${index}`}>Burst Time</Label>
+              <Label htmlFor={`burst-${index}`} className="text-xs sm:text-sm">Burst</Label>
               <NumberField
                 id={`burst-${index}`}
                 min={1}
@@ -99,7 +103,7 @@ export const ProcessForm = ({ processes, onProcessesChange, needsPriority }: Pro
             </div>
             {needsPriority && (
               <div>
-                <Label htmlFor={`priority-${index}`}>Priority</Label>
+                <Label htmlFor={`priority-${index}`} className="text-xs sm:text-sm">Priority</Label>
                 <NumberField
                   id={`priority-${index}`}
                   min={1}
@@ -109,14 +113,14 @@ export const ProcessForm = ({ processes, onProcessesChange, needsPriority }: Pro
                 />
               </div>
             )}
-            <div className="flex flex-col w-full">
-              <Label className="mb-1">Delete Process</Label>
+            <div className={`flex flex-col ${needsPriority ? 'col-span-2 lg:col-span-1' : ''}`}>
+              <Label className="mb-1 text-xs sm:text-sm">Remove</Label>
               <Button
                 variant="destructive"
                 size="sm"
                 onClick={() => removeProcess(index)}
+                aria-label={`Remove ${process.id}`}
                 className="w-full h-10"
-                style={{ minHeight: '2.5rem' }}
               >
                 <Trash2 className="w-4 h-4" />
               </Button>

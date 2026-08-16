@@ -19,6 +19,7 @@ import {
   simulateMemory
 } from '@/lib/algorithms/memory';
 import { Boxes } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 const STRATEGIES: FitStrategy[] = ['First Fit', 'Best Fit', 'Worst Fit', 'Next Fit'];
 
@@ -80,20 +81,10 @@ const MemoryAllocation = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <Card className="bg-gradient-to-r from-primary/20 via-primary/10 to-transparent border-primary/30 mt-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-2xl md:text-3xl">
-            <div className="p-2 bg-primary/20 rounded-lg">
-              <Boxes className="w-8 h-8 text-primary" />
-            </div>
-            Memory Allocation
-          </CardTitle>
-          <p className="text-muted-foreground text-lg">
-            Four strategies for choosing which free hole a process goes into — and the
+      <PageHeader icon={Boxes} title="Memory Allocation">
+        Four strategies for choosing which free hole a process goes into — and the
             fragmentation each one leaves behind.
-          </p>
-        </CardHeader>
-      </Card>
+      </PageHeader>
 
       <Card className="border border-border/60 shadow-md bg-background/90 backdrop-blur-md">
         <CardHeader className="pb-4">

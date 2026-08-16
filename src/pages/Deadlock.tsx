@@ -19,6 +19,7 @@ import {
   requestResources
 } from '@/lib/algorithms/deadlock';
 import { CircleAlert, ShieldCheck, Workflow } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 const DEFAULT: BankerInput = {
   resources: ['A', 'B', 'C'],
@@ -676,29 +677,19 @@ const Prevention = () => {
 
 const Deadlock = () => (
   <div className="space-y-6 max-w-7xl mx-auto">
-    <Card className="bg-gradient-to-r from-primary/20 via-primary/10 to-transparent border-primary/30 mt-4">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3 text-2xl md:text-3xl">
-          <div className="p-2 bg-primary/20 rounded-lg">
-            <Workflow className="w-8 h-8 text-primary" />
-          </div>
-          Deadlock
-        </CardTitle>
-        <p className="text-muted-foreground text-lg">
-          Avoid it with Banker&rsquo;s algorithm, or detect it once it has already happened.
-        </p>
-      </CardHeader>
-    </Card>
+    <PageHeader icon={Workflow} title="Deadlock">
+        Avoid it with Banker&rsquo;s algorithm, or detect it once it has already happened.
+      </PageHeader>
 
     <Tabs defaultValue="prevention" className="space-y-6">
-      <TabsList className="grid grid-cols-1 sm:grid-cols-3 w-full h-auto gap-2 bg-background/90 border border-border/60 shadow-md rounded-xl p-2">
-        <TabsTrigger value="prevention" className="py-2.5 font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
+      <TabsList className="grid grid-cols-1 sm:grid-cols-3 w-full h-auto gap-1.5 sm:gap-2 bg-background/90 border border-border/60 shadow-md rounded-xl p-1.5 sm:p-2">
+        <TabsTrigger value="prevention" className="py-2 sm:py-2.5 px-2 text-xs sm:text-sm font-semibold whitespace-normal leading-tight data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
           Prevention
         </TabsTrigger>
-        <TabsTrigger value="banker" className="py-2.5 font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
+        <TabsTrigger value="banker" className="py-2 sm:py-2.5 px-2 text-xs sm:text-sm font-semibold whitespace-normal leading-tight data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
           Avoidance — Banker&rsquo;s
         </TabsTrigger>
-        <TabsTrigger value="detection" className="py-2.5 font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
+        <TabsTrigger value="detection" className="py-2 sm:py-2.5 px-2 text-xs sm:text-sm font-semibold whitespace-normal leading-tight data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
           Detection &amp; recovery
         </TabsTrigger>
       </TabsList>

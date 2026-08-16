@@ -74,39 +74,39 @@ const Home = () => {
   const [view, setView] = useState<'topic' | 'unit'>('topic');
 
   return (
-  <div className="max-w-7xl mx-auto space-y-14 pb-8">
+  <div className="max-w-7xl mx-auto space-y-10 sm:space-y-14 pb-8">
     {/* Hero */}
     <motion.section
       variants={stagger(0.08)}
       initial="hidden"
       animate="visible"
-      className="text-center space-y-5 pt-12"
+      className="text-center space-y-4 sm:space-y-5 pt-6 sm:pt-12"
     >
-      <motion.h1 variants={fadeUp} className="text-4xl md:text-5xl font-bold">
+      <motion.h1 variants={fadeUp} className="text-3xl sm:text-4xl md:text-5xl font-bold">
         <span className="text-primary">Schedulr</span>
-        <span className="block text-2xl md:text-3xl mt-2 text-foreground">
+        <span className="block text-lg sm:text-2xl md:text-3xl mt-2 text-foreground text-balance">
           Operating system concepts you can actually watch
         </span>
       </motion.h1>
 
       <motion.p
         variants={fadeUp}
-        className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed"
+        className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed text-pretty"
       >
         {MODULES.length} modules covering all five syllabus units and{' '}
         {MODULES.reduce((sum, m) => sum + m.topics.length, 0)} algorithms and problems. Every
         simulation runs step by step, in your browser, and explains each decision as it makes it.
       </motion.p>
 
-      <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-3 pt-2">
+      <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:flex-wrap justify-center gap-3 pt-2 px-4 sm:px-0">
         <Link to="/cpu-scheduling">
-          <Button size="lg">
+          <Button size="lg" className="w-full sm:w-auto">
             <Play className="mr-2 h-4 w-4" />
             Start with CPU scheduling
           </Button>
         </Link>
         <Link to="/synchronization">
-          <Button size="lg" variant="outline">
+          <Button size="lg" variant="outline" className="w-full sm:w-auto">
             See a deadlock happen
           </Button>
         </Link>
@@ -114,7 +114,7 @@ const Home = () => {
 
       <motion.div
         variants={fadeUp}
-        className="flex flex-wrap justify-center gap-6 pt-6 text-sm text-muted-foreground"
+        className="flex flex-col sm:flex-row sm:flex-wrap justify-center items-center gap-2 sm:gap-6 pt-4 sm:pt-6 text-xs sm:text-sm text-muted-foreground"
       >
         {[
           { icon: SlidersHorizontal, text: 'Play, pause, rewind and scrub every simulation' },
@@ -142,7 +142,7 @@ const Home = () => {
       ? groups.map(group => (
         <section key={group.category} className="space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-4 border-b border-border/60 pb-3">
-            <h2 className="text-2xl font-semibold shrink-0">{group.category}</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold shrink-0">{group.category}</h2>
             <p className="text-sm text-muted-foreground">{group.blurb}</p>
           </div>
 
@@ -162,7 +162,7 @@ const Home = () => {
       : units.map(unit => (
         <section key={unit.unit} className="space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-4 border-b border-border/60 pb-3">
-            <h2 className="text-2xl font-semibold shrink-0">Unit {unit.unit}</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold shrink-0">Unit {unit.unit}</h2>
             <p className="text-sm text-muted-foreground">{unit.title}</p>
           </div>
 
@@ -181,8 +181,8 @@ const Home = () => {
       ))}
 
     {/* About */}
-    <section className="rounded-2xl border border-border/60 shadow-md bg-background/90 backdrop-blur-md p-8 text-center space-y-3">
-      <h2 className="text-2xl font-semibold">Built to be checked</h2>
+    <section className="rounded-2xl border border-border/60 shadow-md bg-background/90 backdrop-blur-md p-5 sm:p-8 text-center space-y-3">
+      <h2 className="text-xl sm:text-2xl font-semibold">Built to be checked</h2>
       <p className="text-muted-foreground max-w-3xl mx-auto leading-relaxed">
         Every algorithm here is a pure function covered by unit tests pinned to worked textbook
         examples — the Silberschatz disk and Banker&rsquo;s exercises, the standard page reference

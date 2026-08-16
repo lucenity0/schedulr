@@ -13,6 +13,7 @@ import {
   defaultAccessMatrix
 } from '@/lib/algorithms/ipc';
 import { KeyRound, ShieldCheck, ShieldX } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 const RIGHTS: Right[] = ['read', 'write', 'execute', 'owner', 'switch'];
 
@@ -57,20 +58,10 @@ const Protection = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <Card className="bg-gradient-to-r from-primary/20 via-primary/10 to-transparent border-primary/30 mt-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-2xl md:text-3xl">
-            <div className="p-2 bg-primary/20 rounded-lg">
-              <KeyRound className="w-8 h-8 text-primary" />
-            </div>
-            System Protection
-          </CardTitle>
-          <p className="text-muted-foreground text-lg">
-            Who may do what to which object. Every access is checked against one cell of a matrix
+      <PageHeader icon={KeyRound} title="System Protection">
+        Who may do what to which object. Every access is checked against one cell of a matrix
             &mdash; and nothing outside that cell is permitted.
-          </p>
-        </CardHeader>
-      </Card>
+      </PageHeader>
 
       <Card className="border border-border/60 shadow-md bg-background/90">
         <CardHeader className="pb-3">

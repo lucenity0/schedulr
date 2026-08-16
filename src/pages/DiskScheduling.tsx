@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { HardDrive } from 'lucide-react';
 import { SimulationControls } from '@/components/SimulationControls';
 import { ConceptPanel } from '@/components/ConceptPanel';
+import { PageHeader } from '@/components/PageHeader';
 import { useSimulationPlayer } from '@/hooks/useSimulationPlayer';
 import { diskExplanations } from '@/lib/explanations';
 import { spring, swift } from '@/lib/motion';
@@ -74,20 +75,10 @@ const DiskScheduling = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <Card className="bg-gradient-to-r from-primary/20 via-primary/10 to-transparent border-primary/30 mt-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-2xl md:text-3xl">
-            <div className="p-2 bg-primary/20 rounded-lg">
-              <HardDrive className="w-8 h-8 text-primary" />
-            </div>
-            Disk Scheduling
-          </CardTitle>
-          <p className="text-muted-foreground text-lg">
-            Every track the head crosses costs time. Watch the arm move and see how much distance
+      <PageHeader icon={HardDrive} title="Disk Scheduling">
+        Every track the head crosses costs time. Watch the arm move and see how much distance
             each algorithm saves.
-          </p>
-        </CardHeader>
-      </Card>
+      </PageHeader>
 
       {/* Configuration */}
       <Card className="border border-border/60 shadow-md bg-background/90 backdrop-blur-md">

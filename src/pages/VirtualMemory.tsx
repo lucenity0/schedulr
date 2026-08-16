@@ -20,6 +20,7 @@ import {
   workingSetSeries
 } from '@/lib/algorithms/virtualmemory';
 import { Layers3, TriangleAlert } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 const DemandPaging = () => {
   const [memoryTime, setMemoryTime] = useState(200);
@@ -480,23 +481,13 @@ const FrameAllocation = () => {
 
 const VirtualMemory = () => (
   <div className="space-y-6 max-w-7xl mx-auto">
-    <Card className="bg-gradient-to-r from-primary/20 via-primary/10 to-transparent border-primary/30 mt-4">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3 text-2xl md:text-3xl">
-          <div className="p-2 bg-primary/20 rounded-lg">
-            <Layers3 className="w-8 h-8 text-primary" />
-          </div>
-          Virtual Memory Management
-        </CardTitle>
-        <p className="text-muted-foreground text-lg">
-          Running programs larger than physical memory &mdash; and the price you pay when you push
+    <PageHeader icon={Layers3} title="Virtual Memory Management">
+        Running programs larger than physical memory &mdash; and the price you pay when you push
           it too far.
-        </p>
-      </CardHeader>
-    </Card>
+      </PageHeader>
 
     <Tabs defaultValue="demand" className="space-y-6">
-      <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full h-auto gap-2 bg-background/90 border border-border/60 shadow-md rounded-xl p-2">
+      <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full h-auto gap-1.5 sm:gap-2 bg-background/90 border border-border/60 shadow-md rounded-xl p-1.5 sm:p-2">
         {[
           ['demand', 'Demand paging'],
           ['cow', 'Copy-on-write'],
@@ -506,7 +497,7 @@ const VirtualMemory = () => (
           <TabsTrigger
             key={value}
             value={value}
-            className="py-2.5 text-sm font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg"
+            className="py-2 sm:py-2.5 px-2 text-xs sm:text-sm font-semibold whitespace-normal leading-tight data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg"
           >
             {label}
           </TabsTrigger>
