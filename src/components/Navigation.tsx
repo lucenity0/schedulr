@@ -80,7 +80,7 @@ export const Navigation = () => {
                         {group.category}
                       </NavigationMenuTrigger>
                       <NavigationMenuContent>
-                        <div className="w-[420px] p-3">
+                        <div className="w-[460px] p-3 max-h-[70vh] overflow-y-auto">
                           <p className="px-3 pb-2 text-xs text-muted-foreground border-b border-border/60 mb-2">
                             {CATEGORY_BLURB[group.category]}
                           </p>
@@ -108,6 +108,9 @@ export const Navigation = () => {
                                         </div>
                                         <div className="text-xs text-muted-foreground line-clamp-1">
                                           {module.topics.slice(0, 4).join(', ')}
+                                        </div>
+                                        <div className="text-[10px] text-muted-foreground/70 font-mono mt-0.5">
+                                          Unit {module.units.join(', ')}
                                         </div>
                                       </div>
                                     </Link>

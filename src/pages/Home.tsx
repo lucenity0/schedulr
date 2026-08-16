@@ -3,11 +3,14 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MODULES, OsModule, modulesByCategory } from '@/lib/modules';
+import { useState } from 'react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MODULES, OsModule, modulesByCategory, modulesByUnit } from '@/lib/modules';
 import { fadeUp, stagger } from '@/lib/motion';
 import { ArrowRight, GraduationCap, Play, SlidersHorizontal } from 'lucide-react';
 
 const groups = modulesByCategory();
+const units = modulesByUnit();
 
 const LEVEL_STYLES: Record<OsModule['level'], string> = {
   'Start here': 'border-green-500/40 text-green-400',
@@ -26,9 +29,14 @@ const ModuleCard = ({ module }: { module: OsModule }) => (
             </div>
             <CardTitle className="text-base leading-tight">{module.title}</CardTitle>
           </div>
-          <Badge variant="outline" className={`shrink-0 text-[10px] ${LEVEL_STYLES[module.level]}`}>
-            {module.level}
-          </Badge>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <Badge variant="outline" className={`text-[10px] ${LEVEL_STYLES[module.level]}`}>
+              {module.level}
+            </Badge>
+            <span className="text-[10px] text-muted-foreground font-mono">
+              Unit {module.units.join(', ')}
+            </span>
+          </div>
         </div>
         <CardDescription className="text-sm leading-relaxed">{module.description}</CardDescription>
       </CardHeader>
@@ -62,7 +70,10 @@ const ModuleCard = ({ module }: { module: OsModule }) => (
   </motion.div>
 );
 
-const Home = () => (
+const Home = () => {
+  const [view, setView] = useState<'topic' | 'unit'>('topic');
+
+  return (
   <div className="max-w-7xl mx-auto space-y-14 pb-8">
     {/* Hero */}
     <motion.section
@@ -82,9 +93,9 @@ const Home = () => (
         variants={fadeUp}
         className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed"
       >
-        Eight modules covering {MODULES.reduce((sum, m) => sum + m.topics.length, 0)} algorithms and
-        problems. Every simulation runs step by step, in your browser, and explains each decision as
-        it makes it.
+        {MODULES.length} modules covering all five syllabus units and{' '}
+        {MODULES.reduce((sum, m) => sum + m.topics.length, 0)} algorithms and problems. Every
+        simulation runs step by step, in your browser, and explains each decision as it makes it.
       </motion.p>
 
       <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-3 pt-2">
@@ -117,27 +128,57 @@ const Home = () => (
       </motion.div>
     </motion.section>
 
-    {/* Modules by category */}
-    {groups.map(group => (
-      <section key={group.category} className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-4 border-b border-border/60 pb-3">
-          <h2 className="text-2xl font-semibold shrink-0">{group.category}</h2>
-          <p className="text-sm text-muted-foreground">{group.blurb}</p>
-        </div>
+    {/* Browse by topic, or straight down the syllabus */}
+    <div className="flex justify-center">
+      <Tabs value={view} onValueChange={value => setView(value as 'topic' | 'unit')}>
+        <TabsList>
+          <TabsTrigger value="topic">Browse by topic</TabsTrigger>
+          <TabsTrigger value="unit">Browse by syllabus unit</TabsTrigger>
+        </TabsList>
+      </Tabs>
+    </div>
 
-        <motion.div
-          variants={stagger(0.06)}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-80px' }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
-        >
-          {group.modules.map(module => (
-            <ModuleCard key={module.path} module={module} />
-          ))}
-        </motion.div>
-      </section>
-    ))}
+    {view === 'topic'
+      ? groups.map(group => (
+        <section key={group.category} className="space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-4 border-b border-border/60 pb-3">
+            <h2 className="text-2xl font-semibold shrink-0">{group.category}</h2>
+            <p className="text-sm text-muted-foreground">{group.blurb}</p>
+          </div>
+
+          <motion.div
+            variants={stagger(0.06)}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-80px' }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+          >
+            {group.modules.map(module => (
+              <ModuleCard key={module.path} module={module} />
+            ))}
+          </motion.div>
+        </section>
+      ))
+      : units.map(unit => (
+        <section key={unit.unit} className="space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-4 border-b border-border/60 pb-3">
+            <h2 className="text-2xl font-semibold shrink-0">Unit {unit.unit}</h2>
+            <p className="text-sm text-muted-foreground">{unit.title}</p>
+          </div>
+
+          <motion.div
+            variants={stagger(0.06)}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-80px' }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+          >
+            {unit.modules.map(module => (
+              <ModuleCard key={module.path} module={module} />
+            ))}
+          </motion.div>
+        </section>
+      ))}
 
     {/* About */}
     <section className="rounded-2xl border border-border/60 shadow-md bg-background/90 backdrop-blur-md p-8 text-center space-y-3">
@@ -150,6 +191,7 @@ const Home = () => (
       </p>
     </section>
   </div>
-);
+  );
+};
 
 export default Home;

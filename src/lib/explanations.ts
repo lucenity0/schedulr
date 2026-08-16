@@ -435,3 +435,251 @@ export const syncExplanations: Record<string, AlgorithmExplanation> = {
     note: 'All four Coffman conditions hold here at once: mutual exclusion, hold-and-wait, no preemption, and circular wait. Break any one of them and the deadlock is impossible.'
   }
 };
+
+export const addressingExplanations: Record<string, AlgorithmExplanation> = {
+  paging: {
+    idea: 'Split every address into a page number and an offset. The page number is looked up in a table to find a frame; the offset is copied through untouched.',
+    pseudocode: [
+      'page   = address / pageSize',
+      'offset = address % pageSize',
+      'if page is in the TLB:',
+      '  frame = TLB[page]          <- 1 memory access',
+      'else:',
+      '  frame = pageTable[page]    <- 2 memory accesses',
+      '  if not valid: page fault',
+      'physical = frame * pageSize + offset'
+    ],
+    strengths: ['No external fragmentation at all', 'Frames are interchangeable, so allocation is trivial', 'Pages can be shared between processes'],
+    weaknesses: ['Internal fragmentation in the last page of every process', 'The page table itself costs memory', 'Without a TLB every access needs two memory references'],
+    note: 'A flat page table for a 32-bit address space with 4 KB pages is 4 MB per process - which is exactly why real systems use multi-level or inverted page tables.'
+  },
+  segmentation: {
+    idea: 'Divide a program the way a programmer thinks about it - code, stack, heap - and give each segment its own base and length.',
+    pseudocode: [
+      'read <segment, offset> from the address',
+      'entry = segmentTable[segment]',
+      'if offset >= entry.limit:',
+      '  trap - addressing error',
+      'physical = entry.base + offset'
+    ],
+    strengths: ['Matches the logical structure of a program', 'The limit check catches an overrun that paging would silently allow', 'Segments can be protected and shared by meaning, not by address'],
+    weaknesses: ['Segments vary in size, so external fragmentation returns', 'Allocation needs first/best/worst fit again'],
+    note: 'The limit register is what makes segmentation catch a buffer overrun: exceed the segment length and the hardware traps immediately.'
+  }
+};
+
+export const filesystemExplanations: Record<string, AlgorithmExplanation> = {
+  contiguous: {
+    idea: 'Store every file in a run of consecutive blocks. The directory only needs a start block and a length.',
+    pseudocode: [
+      'find a run of `length` free blocks',
+      'if no run is long enough: fail',
+      'record (start, length) in the directory',
+      'block i of the file = start + i'
+    ],
+    strengths: ['Both sequential and direct access are fast', 'Minimal seeking - the blocks are next to each other', 'Tiny directory entry'],
+    weaknesses: ['External fragmentation', 'You must know the final file size when you create it', 'Growing a file may mean moving all of it'],
+    note: 'This is why CD-ROMs use contiguous allocation and hard disks do not: a read-only medium knows every file size in advance.'
+  },
+  linked: {
+    idea: 'Scatter the blocks anywhere and have each one point to the next, like a linked list on disk.',
+    pseudocode: [
+      'for each block needed:',
+      '  take any free block',
+      '  point the previous block at it',
+      'directory stores only the first block',
+      'block i = follow i pointers from the start'
+    ],
+    strengths: ['No external fragmentation whatsoever', 'Files can grow at any time', 'No need to declare a size up front'],
+    weaknesses: ['Direct access is hopeless - reaching block i costs i+1 reads', 'A single corrupted pointer loses the rest of the file', 'Pointers consume space in every block'],
+    note: 'The FAT file system fixes the direct-access problem by pulling all the pointers into one table at the front of the disk, which can be cached.'
+  },
+  indexed: {
+    idea: 'Give each file one index block holding pointers to all of its data blocks.',
+    pseudocode: [
+      'allocate one index block',
+      'for each data block:',
+      '  take any free block',
+      '  write its address into the index',
+      'block i = read index, then read index[i]'
+    ],
+    strengths: ['Direct access in two reads regardless of i', 'No external fragmentation', 'Files can grow freely'],
+    weaknesses: ['An entire block of overhead even for a one-block file', 'A single index block caps the maximum file size'],
+    note: 'Unix inodes extend this with indirect blocks: an index that points to more indexes, so small files stay cheap and huge files remain possible.'
+  }
+};
+
+export const criticalSectionExplanations: Record<string, AlgorithmExplanation> = {
+  none: {
+    idea: 'No protection at all. counter++ is three separate instructions, and any interleaving between them can lose an update.',
+    pseudocode: [
+      'register = counter    <- read',
+      'register = register + 1',
+      'counter  = register   <- write'
+    ],
+    strengths: ['Nothing to implement', 'No locking overhead'],
+    weaknesses: ['The result depends on timing', 'It usually works, which is what makes the bug so hard to find'],
+    note: 'Step the two threads alternately and watch two increments produce a count of one. That single lost update is the entire critical-section problem.'
+  },
+  peterson: {
+    idea: 'A software-only solution for two threads: announce your interest, then politely give the other thread the turn.',
+    pseudocode: [
+      'flag[i] = true',
+      'turn = j',
+      'while (flag[j] && turn == j);   <- wait',
+      '  ... critical section ...',
+      'flag[i] = false'
+    ],
+    strengths: ['Needs no special hardware instruction', 'Satisfies all three requirements: mutual exclusion, progress and bounded waiting'],
+    weaknesses: ['Works for two processes only', 'Busy-waits, burning CPU', 'Modern CPUs reorder memory writes, so it needs memory barriers to work for real'],
+    note: 'Setting turn = j - handing the turn away - is the trick. If both threads set it, the second write wins, so exactly one of them proceeds.'
+  },
+  mutex: {
+    idea: 'A lock with two operations: acquire it before the critical section, release it after. Anyone else has to wait.',
+    pseudocode: [
+      'acquire(mutex)',
+      '  ... critical section ...',
+      'release(mutex)'
+    ],
+    strengths: ['Works for any number of threads', 'Simple to reason about', 'A blocking mutex lets the waiter sleep instead of spinning'],
+    weaknesses: ['Forgetting to release deadlocks everything', 'Contention serialises threads', 'Acquiring two locks in different orders deadlocks'],
+    note: 'acquire() and release() must themselves be atomic - which is why they are built on a hardware instruction like TestAndSet.'
+  },
+  'test-and-set': {
+    idea: 'One indivisible hardware instruction reads a lock and sets it in the same breath, so no interleaving can slip between the two.',
+    pseudocode: [
+      'boolean TestAndSet(target):',
+      '  rv = *target',
+      '  *target = true',
+      '  return rv          <- all of this is atomic',
+      '',
+      'while (TestAndSet(&lock));',
+      '  ... critical section ...',
+      'lock = false'
+    ],
+    strengths: ['Atomicity guaranteed by the hardware', 'Works for any number of processors', 'The foundation every higher-level lock is built on'],
+    weaknesses: ['Spins, wasting a whole CPU while waiting', 'No bounded waiting by itself - a thread can be unlucky forever'],
+    note: 'The atomicity is the entire point: without it, two threads could both read false and both conclude the lock is theirs.'
+  }
+};
+
+export const multiprocessorExplanations: Record<string, AlgorithmExplanation> = {
+  common: {
+    idea: 'One shared ready queue serving every core. Any core takes the next process whenever it goes idle.',
+    pseudocode: [
+      'single ready queue shared by all cores',
+      'when a core goes idle:',
+      '  lock the queue',
+      '  take the next process',
+      '  unlock the queue'
+    ],
+    strengths: ['Perfect load balance for free - no core idles while work waits', 'Simple to implement'],
+    weaknesses: ['Every core contends for one lock, and that lock becomes the bottleneck', 'A process rarely returns to the same core, so its cache is always cold'],
+    note: 'This is why it does not scale: at 64 cores the queue lock is contended constantly, and the cache misses cost more than the balance saves.'
+  },
+  'per-cpu': {
+    idea: 'Each core keeps its own ready queue, so there is no shared lock and a process naturally stays where its cache is warm.',
+    pseudocode: [
+      'each core has a private ready queue',
+      'when a core goes idle:',
+      '  take from its own queue (no lock needed)',
+      '  if empty: pull work from the busiest queue',
+      'prefer a process that last ran on this core'
+    ],
+    strengths: ['No lock contention between cores', 'Processor affinity keeps caches warm', 'Scales to many cores - what Linux actually does'],
+    weaknesses: ['Queues drift out of balance', 'Load balancing migrates processes, which throws away the cache affinity you were protecting'],
+    note: 'Affinity and load balancing pull in opposite directions: every migration fixes the imbalance and costs a cold cache. Real schedulers tune the trade-off constantly.'
+  }
+};
+
+export const virtualMemoryExplanations: Record<string, AlgorithmExplanation> = {
+  'demand-paging': {
+    idea: 'Never load a page until it is actually referenced. A program starts with almost nothing resident and faults its working set in.',
+    pseudocode: [
+      'on reference to page p:',
+      '  if valid bit is set: proceed normally',
+      '  else trap to the OS:',
+      '    find a free frame (evict one if needed)',
+      '    read the page in from disk',
+      '    set the valid bit',
+      '    restart the instruction'
+    ],
+    strengths: ['A process can be larger than physical memory', 'Starts faster - nothing unused is ever loaded', 'More processes fit in memory at once'],
+    weaknesses: ['A fault costs milliseconds against nanoseconds for memory', 'Even a tiny fault rate dominates the average access time'],
+    note: 'EAT = (1 − p) × memory + p × fault service. With 200 ns memory and 8 ms faults, one fault per thousand accesses makes the machine 40× slower.'
+  },
+  'copy-on-write': {
+    idea: 'After fork(), parent and child share every frame read-only. Only when one of them writes is that single page copied.',
+    pseudocode: [
+      'fork():',
+      '  child maps the parent\'s frames',
+      '  mark every shared page read-only',
+      'on write to a shared page:',
+      '  trap, copy just that page',
+      '  give the writer the private copy',
+      '  restart the write'
+    ],
+    strengths: ['fork() becomes almost free', 'Pages never written are never copied', 'Makes the fork-then-exec pattern practical'],
+    weaknesses: ['Every first write costs a trap and a copy', 'Bookkeeping for shared frames'],
+    note: 'Since exec() replaces the image immediately, a fork-then-exec copies almost nothing - the pages are discarded before anyone writes to them.'
+  },
+  thrashing: {
+    idea: 'A process needs its working set resident. Squeeze it below that and it faults constantly, spending all its time paging rather than working.',
+    pseudocode: [
+      'CPU utilization low?',
+      '  the OS adds another process',
+      '  frames per process fall',
+      '  fault rate rises',
+      '  CPU utilization falls further',
+      '  -> the OS adds another process...'
+    ],
+    strengths: ['The working-set model predicts and prevents it', 'Page-fault frequency control reacts to it directly'],
+    weaknesses: ['The feedback loop makes it self-reinforcing', 'The system looks idle while doing nothing but paging'],
+    note: 'The cruel part is the feedback: low CPU utilization looks like "not enough processes", so the scheduler adds more, which makes it worse.'
+  }
+};
+
+export const ipcExplanations: Record<string, AlgorithmExplanation> = {
+  'shared-memory': {
+    idea: 'Both processes map the same region of physical memory. After setup the kernel is not involved at all.',
+    pseudocode: [
+      'shmget()  <- ask the kernel for a region',
+      'shmat()   <- map it into your address space',
+      '... plain memory reads and writes ...',
+      '(the kernel never sees them)'
+    ],
+    strengths: ['Memory speed - no copying, no system calls', 'Ideal for large or high-volume data'],
+    weaknesses: ['You must provide your own synchronization', 'Only works between processes on one machine', 'A bug in one process can corrupt the other'],
+    note: 'Notice what is missing: nothing here prevents both processes writing the same slot at once. That is the producer-consumer problem, and you have to solve it yourself.'
+  },
+  'message-passing': {
+    idea: 'Processes never share memory. They ask the kernel to carry each message from one to the other.',
+    pseudocode: [
+      'send(destination, message)',
+      '  -> traps into the kernel',
+      '  -> copies the message into a kernel buffer',
+      'receive(source, &message)',
+      '  -> traps into the kernel',
+      '  -> copies the message back out'
+    ],
+    strengths: ['Synchronization is built in - the channel is atomic', 'Works unchanged across a network', 'Processes stay isolated from each other'],
+    weaknesses: ['Two copies and two system calls per message', 'Much slower for large payloads'],
+    note: 'A zero-capacity channel forces a rendezvous: the sender blocks until the receiver arrives, so the two are synchronized by the act of communicating.'
+  }
+};
+
+export const protectionExplanation: AlgorithmExplanation = {
+  idea: 'Model protection as a matrix: rows are domains, columns are objects, and each cell lists exactly what that domain may do to that object.',
+  pseudocode: [
+    'on access(domain, object, right):',
+    '  if right in matrix[domain][object]:',
+    '    allow',
+    '  else:',
+    '    trap - protection violation',
+    '',
+    'switching domains needs the `switch` right'
+  ],
+  strengths: ['One uniform model for every resource', 'Enforces least privilege precisely', 'Rows become capability lists; columns become access control lists'],
+  weaknesses: ['The full matrix is enormous and mostly empty', 'Nobody stores it as a matrix in practice'],
+  note: 'Store it by column and you get the access control list every file system uses. Store it by row and you get the capability list. They are the same matrix, sliced two ways.'
+};
