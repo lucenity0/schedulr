@@ -3,20 +3,31 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Suspense, lazy } from "react";
 import { Layout } from "./components/Layout";
 import Home from "./pages/Home";
-import CPUScheduling from "./pages/CPUScheduling";
-import SystemCalls from "./pages/SystemCalls";
-import Synchronization from "./pages/Synchronization";
-import PageReplacement from "./pages/PageReplacement";
-import DiskScheduling from "./pages/DiskScheduling";
-import MemoryAllocation from "./pages/MemoryAllocation";
-import Deadlock from "./pages/Deadlock";
-import RealTimeScheduling from "./pages/RealTimeScheduling";
 import NotFound from "./pages/NotFound";
 import { Github, Linkedin, Heart } from 'lucide-react';
 
+// Each module carries its own algorithms and visualization, so they are split
+// out of the initial bundle - a visitor reading about disk scheduling should
+// not have to download the Banker's matrices first.
+const CPUScheduling = lazy(() => import("./pages/CPUScheduling"));
+const SystemCalls = lazy(() => import("./pages/SystemCalls"));
+const Synchronization = lazy(() => import("./pages/Synchronization"));
+const PageReplacement = lazy(() => import("./pages/PageReplacement"));
+const DiskScheduling = lazy(() => import("./pages/DiskScheduling"));
+const MemoryAllocation = lazy(() => import("./pages/MemoryAllocation"));
+const Deadlock = lazy(() => import("./pages/Deadlock"));
+const RealTimeScheduling = lazy(() => import("./pages/RealTimeScheduling"));
+
 const queryClient = new QueryClient();
+
+const ModuleFallback = () => (
+  <div className="flex items-center justify-center py-24 text-muted-foreground">
+    Loading module...
+  </div>
+);
 
 function App() {
   return (
@@ -26,21 +37,23 @@ function App() {
           <Toaster />
           <Sonner />
           <BrowserRouter basename="/schedulr">
-            <Routes>
-              <Route element={<Layout />}>
-                <Route path="/" element={<Home />} />
-                <Route path="/cpu-scheduling" element={<CPUScheduling />} />
-                <Route path="/system-calls" element={<SystemCalls />} />
-                <Route path="/synchronization" element={<Synchronization />} />
-                <Route path="/page-replacement" element={<PageReplacement />} />
-                <Route path="/disk-scheduling" element={<DiskScheduling />} />
-                <Route path="/memory-allocation" element={<MemoryAllocation />} />
-                <Route path="/deadlock" element={<Deadlock />} />
-                <Route path="/real-time" element={<RealTimeScheduling />} />
-              </Route>
+            <Suspense fallback={<ModuleFallback />}>
+              <Routes>
+                <Route element={<Layout />}>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/cpu-scheduling" element={<CPUScheduling />} />
+                  <Route path="/system-calls" element={<SystemCalls />} />
+                  <Route path="/synchronization" element={<Synchronization />} />
+                  <Route path="/page-replacement" element={<PageReplacement />} />
+                  <Route path="/disk-scheduling" element={<DiskScheduling />} />
+                  <Route path="/memory-allocation" element={<MemoryAllocation />} />
+                  <Route path="/deadlock" element={<Deadlock />} />
+                  <Route path="/real-time" element={<RealTimeScheduling />} />
+                </Route>
 
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
