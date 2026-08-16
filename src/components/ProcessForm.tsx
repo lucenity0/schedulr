@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { NumberField } from './NumberField';
 import { Process } from '@/types/scheduler';
 
 interface ProcessFormProps {
@@ -78,35 +79,32 @@ export const ProcessForm = ({ processes, onProcessesChange, needsPriority }: Pro
             </div>
             <div>
               <Label htmlFor={`arrival-${index}`}>Arrival Time</Label>
-              <Input
+              <NumberField
                 id={`arrival-${index}`}
-                type="number"
-                min="0"
+                min={0}
                 value={process.arrivalTime}
-                onChange={(e) => updateProcess(index, 'arrivalTime', parseInt(e.target.value) || 0)}
+                onChange={(value) => updateProcess(index, 'arrivalTime', value)}
                 className="bg-background/50"
               />
             </div>
             <div>
               <Label htmlFor={`burst-${index}`}>Burst Time</Label>
-              <Input
+              <NumberField
                 id={`burst-${index}`}
-                type="number"
-                min="1"
+                min={1}
                 value={process.burstTime}
-                onChange={(e) => updateProcess(index, 'burstTime', parseInt(e.target.value) || 1)}
+                onChange={(value) => updateProcess(index, 'burstTime', value)}
                 className="bg-background/50"
               />
             </div>
             {needsPriority && (
               <div>
                 <Label htmlFor={`priority-${index}`}>Priority</Label>
-                <Input
+                <NumberField
                   id={`priority-${index}`}
-                  type="number"
-                  min="1"
-                  value={process.priority || 1}
-                  onChange={(e) => updateProcess(index, 'priority', parseInt(e.target.value) || 1)}
+                  min={1}
+                  value={process.priority ?? 1}
+                  onChange={(value) => updateProcess(index, 'priority', value)}
                   className="bg-background/50"
                 />
               </div>

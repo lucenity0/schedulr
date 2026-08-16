@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import Home from '@/pages/Home';
 import SystemCalls from '@/pages/SystemCalls';
@@ -10,9 +10,17 @@ import Synchronization from '@/pages/Synchronization';
 import MemoryAllocation from '@/pages/MemoryAllocation';
 import Deadlock from '@/pages/Deadlock';
 import RealTimeScheduling from '@/pages/RealTimeScheduling';
+import AddressTranslation from '@/pages/AddressTranslation';
+import VirtualMemory from '@/pages/VirtualMemory';
+import FileSystems from '@/pages/FileSystems';
+import CriticalSection from '@/pages/CriticalSection';
+import Multiprocessor from '@/pages/Multiprocessor';
+import InterProcessCommunication from '@/pages/InterProcessCommunication';
+import Protection from '@/pages/Protection';
 import { CPUScheduler } from '@/components/CPUScheduler';
 import { DiningPhilosophers } from '@/components/sync/DiningPhilosophers';
 import { Navigation } from '@/components/Navigation';
+import { ScrollToTop } from '@/components/ScrollToTop';
 
 afterEach(cleanup);
 
@@ -35,6 +43,13 @@ describe('pages render', () => {
     ['Page replacement', <PageReplacement />],
     ['Memory allocation', <MemoryAllocation />],
     ['Disk scheduling', <DiskScheduling />],
+    ['Address translation', <AddressTranslation />],
+    ['Virtual memory', <VirtualMemory />],
+    ['File systems', <FileSystems />],
+    ['Critical section', <CriticalSection />],
+    ['Multiprocessor', <Multiprocessor />],
+    ['IPC', <InterProcessCommunication />],
+    ['Protection', <Protection />],
     ['Navigation', <Navigation />]
   ];
 
@@ -117,6 +132,70 @@ describe('dining philosophers', () => {
 describe("banker's algorithm", () => {
   it('reports the default textbook state as safe', () => {
     renderPage(<Deadlock />);
+    // Prevention is the first tab now, so switch to the Banker's tab.
+    // Radix activates a tab on mouseDown/focus, not on a synthetic click.
+    const tab = screen.getByRole('tab', { name: /banker/i });
+    fireEvent.mouseDown(tab);
+    fireEvent.focus(tab);
     expect(screen.getByText('Safe state')).toBeInTheDocument();
+  });
+
+  it('opens on the prevention tab with all four Coffman conditions holding', () => {
+    renderPage(<Deadlock />);
+    expect(screen.getByText(/All four conditions hold/)).toBeInTheDocument();
+  });
+});
+
+describe('critical section', () => {
+  it('loses an increment when the threads are stepped alternately', () => {
+    renderPage(<CriticalSection />);
+
+    const stepA = screen.getByRole('button', { name: /step thread a/i });
+    const stepB = screen.getByRole('button', { name: /step thread b/i });
+
+    act(() => {
+      // load, load, add, add, store, store - the classic lost update.
+      fireEvent.click(stepA);
+      fireEvent.click(stepB);
+      fireEvent.click(stepA);
+      fireEvent.click(stepB);
+      fireEvent.click(stepA);
+      fireEvent.click(stepB);
+    });
+
+    expect(screen.getByText(/Race condition detected/)).toBeInTheDocument();
+  });
+});
+
+describe('address translation', () => {
+  it('translates the default address through the page table', () => {
+    renderPage(<AddressTranslation />);
+    // Address 13, page size 4 -> page 3, offset 1; page 3 maps to frame 2 -> 9.
+    expect(screen.getByText(/Translating 13/)).toBeInTheDocument();
+    expect(screen.getAllByText('9').length).toBeGreaterThan(0);
+  });
+});
+
+describe('scroll restoration', () => {
+  it('scrolls to the top when navigating to a module', () => {
+    const scrollTo = vi.fn();
+    window.scrollTo = scrollTo as unknown as typeof window.scrollTo;
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <ScrollToTop />
+        <Link to="/disk-scheduling">Disk</Link>
+        <Routes>
+          <Route path="/" element={<div>home</div>} />
+          <Route path="/disk-scheduling" element={<div>disk</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    scrollTo.mockClear();
+    fireEvent.click(screen.getByText('Disk'));
+
+    expect(screen.getByText('disk')).toBeInTheDocument();
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'instant' });
   });
 });

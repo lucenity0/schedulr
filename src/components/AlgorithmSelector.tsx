@@ -1,6 +1,6 @@
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+import { NumberField } from './NumberField';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SchedulingAlgorithm } from '@/types/scheduler';
@@ -94,12 +94,12 @@ export const AlgorithmSelector = ({
           <Label htmlFor="timeQuantum">
             Time quantum{algorithm === 'MLQ' ? ' (system queue)' : ''}
           </Label>
-          <Input
+          <NumberField
             id="timeQuantum"
-            type="number"
             min={1}
+            max={20}
             value={timeQuantum}
-            onChange={e => onTimeQuantumChange(Math.max(1, parseInt(e.target.value) || 1))}
+            onChange={onTimeQuantumChange}
             className="bg-background/50"
           />
           <p className="text-xs text-muted-foreground">

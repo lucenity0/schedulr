@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { Layout } from "./components/Layout";
+import { ScrollToTop } from "./components/ScrollToTop";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import { Github, Linkedin, Heart } from 'lucide-react';
@@ -20,6 +21,13 @@ const DiskScheduling = lazy(() => import("./pages/DiskScheduling"));
 const MemoryAllocation = lazy(() => import("./pages/MemoryAllocation"));
 const Deadlock = lazy(() => import("./pages/Deadlock"));
 const RealTimeScheduling = lazy(() => import("./pages/RealTimeScheduling"));
+const AddressTranslation = lazy(() => import("./pages/AddressTranslation"));
+const VirtualMemory = lazy(() => import("./pages/VirtualMemory"));
+const FileSystems = lazy(() => import("./pages/FileSystems"));
+const CriticalSection = lazy(() => import("./pages/CriticalSection"));
+const Multiprocessor = lazy(() => import("./pages/Multiprocessor"));
+const InterProcessCommunication = lazy(() => import("./pages/InterProcessCommunication"));
+const Protection = lazy(() => import("./pages/Protection"));
 
 const queryClient = new QueryClient();
 
@@ -37,6 +45,7 @@ function App() {
           <Toaster />
           <Sonner />
           <BrowserRouter basename="/schedulr">
+            <ScrollToTop />
             <Suspense fallback={<ModuleFallback />}>
               <Routes>
                 <Route element={<Layout />}>
@@ -49,6 +58,13 @@ function App() {
                   <Route path="/memory-allocation" element={<MemoryAllocation />} />
                   <Route path="/deadlock" element={<Deadlock />} />
                   <Route path="/real-time" element={<RealTimeScheduling />} />
+                  <Route path="/address-translation" element={<AddressTranslation />} />
+                  <Route path="/virtual-memory" element={<VirtualMemory />} />
+                  <Route path="/file-systems" element={<FileSystems />} />
+                  <Route path="/critical-section" element={<CriticalSection />} />
+                  <Route path="/multiprocessor" element={<Multiprocessor />} />
+                  <Route path="/ipc" element={<InterProcessCommunication />} />
+                  <Route path="/protection" element={<Protection />} />
                 </Route>
 
                 <Route path="*" element={<NotFound />} />

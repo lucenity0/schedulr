@@ -8,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Database, TriangleAlert } from 'lucide-react';
 import { SimulationControls } from '@/components/SimulationControls';
+import { NumberField } from '@/components/NumberField';
+import { PageMatrix } from '@/components/PageMatrix';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ConceptPanel } from '@/components/ConceptPanel';
 import { useSimulationPlayer } from '@/hooks/useSimulationPlayer';
 import { pagingExplanations } from '@/lib/explanations';
@@ -37,6 +40,8 @@ const activeLineFor = (algorithm: PagingAlgorithm, hit: boolean, wasEmpty: boole
 const PageReplacement = () => {
   const [algorithm, setAlgorithm] = useState<PagingAlgorithm>('FIFO');
   const [frameCount, setFrameCount] = useState(3);
+  // The box view shows memory as it is now; the table is the exam layout.
+  const [view, setView] = useState<'frames' | 'table'>('frames');
   const [input, setInput] = useState('7,0,1,2,0,3,0,4,2,3,0,3,2,1,2,0,1,7,0,1');
 
   const pages = useMemo(() => parseReferenceString(input), [input]);
@@ -117,13 +122,12 @@ const PageReplacement = () => {
 
             <div className="space-y-2">
               <Label htmlFor="frames">Number of frames</Label>
-              <Input
+              <NumberField
                 id="frames"
-                type="number"
                 min={1}
                 max={8}
                 value={frameCount}
-                onChange={e => setFrameCount(Math.min(8, Math.max(1, parseInt(e.target.value) || 1)))}
+                onChange={setFrameCount}
               />
             </div>
 
@@ -149,14 +153,40 @@ const PageReplacement = () => {
         {/* Memory */}
         <Card className="lg:col-span-2 border border-border/60 shadow-md bg-background/90 backdrop-blur-md">
           <CardHeader className="pb-3">
-            <CardTitle>Physical memory</CardTitle>
-            <CardDescription>
-              {step
-                ? `Reference ${step.index + 1} of ${result.steps.length}: page ${step.page}`
-                : 'Nothing referenced yet - every frame is empty.'}
-            </CardDescription>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle>Physical memory</CardTitle>
+                <CardDescription>
+                  {step
+                    ? `Reference ${step.index + 1} of ${result.steps.length}: page ${step.page}`
+                    : 'Nothing referenced yet - every frame is empty.'}
+                </CardDescription>
+              </div>
+
+              {/* Two ways to read the same run: memory now, or the whole
+                  worked table the way it is solved on paper. */}
+              <Tabs value={view} onValueChange={value => setView(value as 'frames' | 'table')}>
+                <TabsList className="h-9">
+                  <TabsTrigger value="frames" className="text-xs px-3">
+                    Frames
+                  </TabsTrigger>
+                  <TabsTrigger value="table" className="text-xs px-3">
+                    Table
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
+            {view === 'table' ? (
+              <PageMatrix
+                steps={result.steps}
+                frameCount={frameCount}
+                current={current}
+                onSeek={player.seek}
+              />
+            ) : (
+              <>
             {/* The frames themselves */}
             <div className="flex flex-wrap justify-center gap-4">
               {frames.map((frame, index) => {
@@ -283,6 +313,8 @@ const PageReplacement = () => {
                 </span>
               </div>
             </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

@@ -529,6 +529,151 @@ const Detection = () => {
   );
 };
 
+const COFFMAN = [
+  {
+    condition: 'Mutual exclusion',
+    holds: 'At least one resource is non-sharable - only one process may use it at a time.',
+    breakIt: 'Make resources sharable where possible. A read-only file needs no exclusion at all.',
+    practical: 'Rarely deniable - you cannot make a printer sharable.'
+  },
+  {
+    condition: 'Hold and wait',
+    holds: 'A process holding one resource is waiting to acquire another.',
+    breakIt: 'Require a process to request every resource it needs at once, before it starts - or to release everything before requesting more.',
+    practical: 'Possible, but resource utilization drops and long jobs can starve.'
+  },
+  {
+    condition: 'No preemption',
+    holds: 'A resource can only be released voluntarily by the process holding it.',
+    breakIt: 'If a process requests something unavailable, preempt everything it already holds and make it start again.',
+    practical: 'Works for resources whose state is easy to save - CPU registers, memory. Useless for a printer mid-page.'
+  },
+  {
+    condition: 'Circular wait',
+    holds: 'A cycle of processes exists, each waiting on a resource held by the next.',
+    breakIt: 'Impose a total ordering on resource types and require requests in increasing order.',
+    practical: 'The one that is actually used. This is the resource hierarchy that fixes Dining Philosophers.'
+  }
+];
+
+const RECOVERY = [
+  {
+    method: 'Abort all deadlocked processes',
+    detail: 'Breaks the cycle immediately and definitively.',
+    cost: 'Every partial computation is thrown away, possibly hours of work.'
+  },
+  {
+    method: 'Abort one process at a time',
+    detail: 'Kill one, re-run detection, repeat until the cycle breaks.',
+    cost: 'Detection runs after every abort, which is expensive.'
+  },
+  {
+    method: 'Resource preemption',
+    detail: 'Take a resource from one process and give it to another.',
+    cost: 'Needs a victim policy, a rollback point, and a guard against starving the same victim forever.'
+  }
+];
+
+const Prevention = () => {
+  const [broken, setBroken] = useState<number | null>(null);
+
+  return (
+    <div className="space-y-6">
+      <Card className="border-border/60 shadow-md bg-background/90">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">The four Coffman conditions</CardTitle>
+          <CardDescription>
+            All four must hold simultaneously for a deadlock to be possible. Break any single one
+            and deadlock becomes impossible - that is what prevention means.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {COFFMAN.map((item, index) => {
+            const isBroken = broken === index;
+            return (
+              <motion.button
+                key={item.condition}
+                onClick={() => setBroken(isBroken ? null : index)}
+                animate={{ opacity: broken !== null && !isBroken ? 0.5 : 1 }}
+                className={`w-full text-left rounded-lg border-2 p-4 transition-colors ${isBroken
+                  ? 'border-green-500/60 bg-green-500/10'
+                  : 'border-border/60 bg-muted/20 hover:border-primary/40'
+                  }`}
+              >
+                <div className="flex items-center justify-between gap-3 mb-1">
+                  <span className={`font-medium ${isBroken ? 'line-through text-green-400' : ''}`}>
+                    {index + 1}. {item.condition}
+                  </span>
+                  <Badge variant={isBroken ? 'outline' : 'secondary'} className="text-[10px] shrink-0">
+                    {isBroken ? 'broken' : 'holds'}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">{item.holds}</p>
+                {isBroken && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="space-y-1.5 border-t border-green-500/30 pt-2"
+                  >
+                    <p className="text-xs">
+                      <span className="font-medium text-green-400">How to break it: </span>
+                      {item.breakIt}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-medium">In practice: </span>
+                      {item.practical}
+                    </p>
+                  </motion.div>
+                )}
+              </motion.button>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      <motion.div
+        animate={{ scale: broken !== null ? 1 : 1 }}
+        className={`rounded-xl border-2 p-4 text-center ${broken !== null
+          ? 'border-green-500/50 bg-green-500/5'
+          : 'border-destructive/50 bg-destructive/10'
+          }`}
+      >
+        <div className="font-semibold mb-1">
+          {broken !== null ? 'Deadlock is now impossible' : 'All four conditions hold'}
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {broken !== null
+            ? `With ${COFFMAN[broken].condition.toLowerCase()} broken, no deadlock can form - at the cost described above. Prevention always trades utilization for the guarantee.`
+            : 'Deadlock is possible. Click a condition above to see how breaking it prevents deadlock, and what it costs you.'}
+        </p>
+      </motion.div>
+
+      <Card className="border-border/60 shadow-md bg-background/90">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Recovery, once it has already happened</CardTitle>
+          <CardDescription>
+            Detection tells you a deadlock exists. Something still has to break it.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {RECOVERY.map(item => (
+            <div key={item.method} className="rounded-lg border border-border/60 bg-muted/20 p-3">
+              <div className="font-medium text-sm">{item.method}</div>
+              <p className="text-xs text-muted-foreground mt-0.5">{item.detail}</p>
+              <p className="text-xs text-destructive/80 mt-1">{item.cost}</p>
+            </div>
+          ))}
+          <p className="text-xs text-muted-foreground border-t border-border/60 pt-3">
+            Most general-purpose systems - Linux and Windows included - do none of this. They ignore
+            deadlock entirely and leave it to the programmer, on the grounds that it happens rarely
+            and the machinery to prevent it costs more than the occasional reboot.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 const Deadlock = () => (
   <div className="space-y-6 max-w-7xl mx-auto">
     <Card className="bg-gradient-to-r from-primary/20 via-primary/10 to-transparent border-primary/30 mt-4">
@@ -545,15 +690,22 @@ const Deadlock = () => (
       </CardHeader>
     </Card>
 
-    <Tabs defaultValue="banker" className="space-y-6">
-      <TabsList className="grid grid-cols-2 w-full h-auto gap-2 bg-background/90 border border-border/60 shadow-md rounded-xl p-2">
+    <Tabs defaultValue="prevention" className="space-y-6">
+      <TabsList className="grid grid-cols-1 sm:grid-cols-3 w-full h-auto gap-2 bg-background/90 border border-border/60 shadow-md rounded-xl p-2">
+        <TabsTrigger value="prevention" className="py-2.5 font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
+          Prevention
+        </TabsTrigger>
         <TabsTrigger value="banker" className="py-2.5 font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
           Avoidance — Banker&rsquo;s
         </TabsTrigger>
         <TabsTrigger value="detection" className="py-2.5 font-semibold data-[state=active]:bg-primary/15 data-[state=active]:text-primary rounded-lg">
-          Detection
+          Detection &amp; recovery
         </TabsTrigger>
       </TabsList>
+
+      <TabsContent value="prevention">
+        <Prevention />
+      </TabsContent>
 
       <TabsContent value="banker">
         <Banker />
