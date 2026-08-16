@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { Layout } from "./components/Layout";
+import { ScrollToTop } from "./components/ScrollToTop";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import { Github, Linkedin, Heart } from 'lucide-react';
@@ -44,6 +45,7 @@ function App() {
           <Toaster />
           <Sonner />
           <BrowserRouter basename="/schedulr">
+            <ScrollToTop />
             <Suspense fallback={<ModuleFallback />}>
               <Routes>
                 <Route element={<Layout />}>

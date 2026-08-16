@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import Home from '@/pages/Home';
 import SystemCalls from '@/pages/SystemCalls';
@@ -20,6 +20,7 @@ import Protection from '@/pages/Protection';
 import { CPUScheduler } from '@/components/CPUScheduler';
 import { DiningPhilosophers } from '@/components/sync/DiningPhilosophers';
 import { Navigation } from '@/components/Navigation';
+import { ScrollToTop } from '@/components/ScrollToTop';
 
 afterEach(cleanup);
 
@@ -172,5 +173,29 @@ describe('address translation', () => {
     // Address 13, page size 4 -> page 3, offset 1; page 3 maps to frame 2 -> 9.
     expect(screen.getByText(/Translating 13/)).toBeInTheDocument();
     expect(screen.getAllByText('9').length).toBeGreaterThan(0);
+  });
+});
+
+describe('scroll restoration', () => {
+  it('scrolls to the top when navigating to a module', () => {
+    const scrollTo = vi.fn();
+    window.scrollTo = scrollTo as unknown as typeof window.scrollTo;
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <ScrollToTop />
+        <Link to="/disk-scheduling">Disk</Link>
+        <Routes>
+          <Route path="/" element={<div>home</div>} />
+          <Route path="/disk-scheduling" element={<div>disk</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    scrollTo.mockClear();
+    fireEvent.click(screen.getByText('Disk'));
+
+    expect(screen.getByText('disk')).toBeInTheDocument();
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'instant' });
   });
 });
